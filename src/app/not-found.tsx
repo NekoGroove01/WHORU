@@ -50,8 +50,8 @@ export default function NotFound() {
 								transition={{ delay: 0.3, duration: 0.5 }}
 								className="absolute inset-0 flex items-center justify-center"
 							>
-								<h1 className="text-4xl font-bold text-[#426EFF]">
-									WHO
+								<h1 className="text-4xl font-bold text-[#426EFF] flex items-center justify-center">
+									<span>WHO</span>
 									<span className="relative">
 										R
 										<motion.span
@@ -66,7 +66,7 @@ export default function NotFound() {
 											U
 										</motion.span>
 									</span>
-									?
+									<span>?</span>
 								</h1>
 							</motion.div>
 						</div>
@@ -76,8 +76,8 @@ export default function NotFound() {
 						</h2>
 
 						<p className="text-gray-600 mb-8 sm:mb-10">
-							The page you&apos;re looking for doesn&apos;t exist or might have been
-							moved.
+							The page you&apos;re looking for doesn&apos;t exist or might have
+							been moved.
 						</p>
 
 						<div className="flex flex-col sm:flex-row justify-center gap-4">

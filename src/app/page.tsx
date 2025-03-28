@@ -118,6 +118,52 @@ export default function Home() {
 				</div>
 			</section>
 
+			{/* FAQ Section */}
+			<section id="FAQ" className="py-24 md:py-28 px-6 bg-white">
+				<div className="max-w-6xl mx-auto">
+					<h2 className="text-3xl font-bold text-center mb-16">FAQs</h2>
+
+					<div className="grid md:grid-cols-2 gap-10">
+						<div>
+							<h3 className="text-xl font-semibold mb-4">What is WHORU?</h3>
+							<p className="text-gray-600">
+								WHORU is a platform where you can create and join question
+								spaces to ask and answer questions anonymously. It&apos;s a safe
+								space for genuine conversations without the fear of judgment.
+							</p>
+						</div>
+						<div>
+							<h3 className="text-xl font-semibold mb-4">
+								How do I create a group?
+							</h3>
+							<p className="text-gray-600">
+								To create a group, click on the &quot;Create a Group&quot;
+								button on the homepage. Enter the group name and description,
+								and share the link with others to join.
+							</p>
+						</div>
+						<div>
+							<h3 className="text-xl font-semibold mb-4">
+								Can I join multiple groups?
+							</h3>
+							<p className="text-gray-600">
+								Yes, you can join as many groups as you want. Each group has a
+								unique link that you can use to access the group anytime.
+							</p>
+						</div>
+						<div>
+							<h3 className="text-xl font-semibold mb-4">
+								Is WHORU free to use?
+							</h3>
+							<p className="text-gray-600">
+								Yes, WHORU is completely free to use. You don&apos;t need to
+								sign up or create an account to ask or answer questions.
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
 			{/* Footer */}
 			<footer className="py-8 px-6 bg-gray-50">
 				<div className="max-w-6xl mx-auto text-center text-gray-500">

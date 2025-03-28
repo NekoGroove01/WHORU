@@ -252,7 +252,7 @@ export default function CreateGroup() {
 				<div className="text-center mt-4 text-gray-500 text-xs sm:text-sm">
 					<p>
 						Need help?{" "}
-						<Link href="/faq" className="text-[#426EFF] hover:underline">
+						<Link href="/#FAQ" className="text-[#426EFF] hover:underline">
 							Check our FAQ
 						</Link>
 					</p>
