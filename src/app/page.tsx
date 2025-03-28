@@ -4,11 +4,8 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { FiUsers, FiLock, FiMessageSquare } from "react-icons/fi";
-import { useState } from "react";
 
 export default function Home() {
-	const [hoverButton, setHoverButton] = useState<string | null>(null);
-
 	const features = [
 		{
 			icon: <FiUsers className="w-6 h-6 text-[#426EFF]" />,
@@ -49,12 +46,7 @@ export default function Home() {
 					</p>
 
 					<div className="flex flex-col sm:flex-row gap-6 justify-center">
-						<motion.div
-							whileHover={{ scale: 1.05 }}
-							whileTap={{ scale: 0.95 }}
-							onMouseEnter={() => setHoverButton("create")}
-							onMouseLeave={() => setHoverButton(null)}
-						>
+						<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 							<Link href="/create" className="inline-block">
 								<button className="px-8 py-4 rounded-lg bg-[#426EFF] text-white font-medium text-lg transition-all hover:shadow-lg hover:bg-blue-600">
 									Create a Group
@@ -62,12 +54,7 @@ export default function Home() {
 							</Link>
 						</motion.div>
 
-						<motion.div
-							whileHover={{ scale: 1.05 }}
-							whileTap={{ scale: 0.95 }}
-							onMouseEnter={() => setHoverButton("join")}
-							onMouseLeave={() => setHoverButton(null)}
-						>
+						<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 							<Link href="/join" className="inline-block">
 								<button className="px-8 py-4 rounded-lg border-2 border-[#426EFF] text-[#426EFF] font-medium text-lg transition-all hover:bg-blue-50">
 									Join Existing Group
