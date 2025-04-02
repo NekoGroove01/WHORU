@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 
 export default function NotFound() {
 	const [mounted, setMounted] = useState(false);
+	const [randomIndex, setRandomIndex] = useState(0);
 
 	// Animation only after mounting to prevent hydration issues
 	useEffect(() => {
@@ -23,7 +24,9 @@ export default function NotFound() {
 		"Am I in the wrong place?",
 	];
 
-	const randomIndex = Math.floor(Math.random() * randomQuestions.length);
+	useEffect(() => {
+		setRandomIndex(Math.floor(Math.random() * randomQuestions.length));
+	}, [randomQuestions.length]);
 
 	return (
 		<div className="min-h-screen bg-gradient-to-b from-white to-blue-50 flex items-center justify-center px-4 py-10">
