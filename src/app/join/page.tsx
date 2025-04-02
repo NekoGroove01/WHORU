@@ -5,7 +5,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
-import CodeJoinForm from "../../components/join/JoinForm";
+import CodeJoinForm from "../../components/join/CodeJoinForm";
 import GroupBrowser from "../../components/join/GroupBrowser";
 
 export default function JoinGroup() {
@@ -14,7 +14,7 @@ export default function JoinGroup() {
 	// Function to handle successful join
 	const handleSuccessfulJoin = (groupId: string) => {
 		// Redirect to the group (this is just a placeholder)
-		window.location.href = `/group/${encodeURIComponent(groupId)}`;
+		window.location.href = `/board/${encodeURIComponent(groupId)}`;
 	};
 
 	return (
