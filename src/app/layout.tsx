@@ -20,12 +20,14 @@ export default function RootLayout({
 			className={`${gmarketSans.variable} ${pretendard.variable}`}
 			suppressHydrationWarning
 		>
-			<body className={`${pretendard.className}`}>
-				<ThemeProvider>{children}</ThemeProvider>
-				{/* Theme Toggle - Fixed position */}
-				<div className="fixed bottom-5 right-5">
-					<ThemeToggle />
-				</div>
+			<body className={`${pretendard.className}`} suppressHydrationWarning>
+				<ThemeProvider>
+					{children}
+					{/* Theme Toggle - Fixed position */}
+					<div className="fixed bottom-5 right-5">
+						<ThemeToggle />
+					</div>
+				</ThemeProvider>
 			</body>
 		</html>
 	);

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FaArrowLeft, FaQrcode, FaLink } from "react-icons/fa";
+import { FaArrowLeft, FaQrcode, FaLink, FaCamera } from "react-icons/fa";
 import TextareaAutosize from "react-textarea-autosize";
 
 // Animation variants
@@ -41,6 +41,11 @@ export default function JoinPage() {
 	const router = useRouter();
 	const [joinMethod, setJoinMethod] = useState<"link" | "qr">("link");
 	const [showScanner, setShowScanner] = useState(false);
+	const [cameraError, setCameraError] = useState<string | null>(null);
+	const [isMobile, setIsMobile] = useState(false);
+
+	const videoRef = useRef<HTMLVideoElement>(null);
+	const streamRef = useRef<MediaStream | null>(null);
 
 	// Form handling
 	const {
@@ -53,6 +58,102 @@ export default function JoinPage() {
 			groupId: "",
 		},
 	});
+
+	// Detect if user is on mobile
+	useEffect(() => {
+		const checkMobile = () => {
+			setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+		};
+		checkMobile();
+		window.addEventListener("resize", checkMobile);
+		return () => window.removeEventListener("resize", checkMobile);
+	}, []);
+
+	// Start camera function
+	const startCamera = useCallback(async () => {
+		try {
+			setCameraError(null);
+
+			// Request camera access
+			const constraints = {
+				video: {
+					facingMode: isMobile ? "environment" : "user",
+					width: { ideal: 1280 },
+					heaight: { ideal: 720 },
+				},
+			};
+
+			const stream = await navigator.mediaDevices.getUserMedia(constraints);
+			streamRef.current = stream;
+
+			// Connect stream to video element
+			if (videoRef.current) {
+				videoRef.current.srcObject = stream;
+			}
+		} catch (error) {
+			console.error("Camera access denied:", error);
+			if (error instanceof DOMException && error.name === "NotAllowedError") {
+				setCameraError("Camera access denied. Please allow camera access.");
+			} else if (
+				error instanceof DOMException &&
+				error.name === "NotFoundError"
+			) {
+				setCameraError("No camera found on this device.");
+			} else {
+				setCameraError(
+					"An error occurred while accessing the camera. Try again."
+				);
+			}
+		}
+	}, [isMobile]);
+
+	const stopCamera = () => {
+		if (streamRef.current) {
+			streamRef.current.getTracks().forEach((track) => track.stop());
+			streamRef.current = null;
+		}
+
+		if (videoRef.current) {
+			videoRef.current.srcObject = null;
+		}
+	};
+
+	// Switch camera on mobile if possible
+	const switchCamera = async () => {
+		const currentMode = streamRef.current
+			?.getVideoTracks()[0]
+			.getSettings().facingMode;
+		const newMode = currentMode === "environment" ? "user" : "environment";
+
+		stopCamera();
+
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({
+				video: { facingMode: newMode },
+			});
+
+			streamRef.current = stream;
+
+			if (videoRef.current) {
+				videoRef.current.srcObject = stream;
+			}
+		} catch (error) {
+			console.error("Error switching camera:", error);
+			setCameraError("Failed to switch camera. Please try again.");
+			startCamera();
+		}
+	};
+
+	// Camera access and cleanup
+	useEffect(() => {
+		if (showScanner && videoRef.current) {
+			startCamera();
+		}
+
+		return () => {
+			stopCamera();
+		};
+	}, [showScanner, startCamera]);
 
 	const onSubmit = async (data: JoinFormValues) => {
 		try {
@@ -190,20 +291,65 @@ export default function JoinPage() {
 							className="flex flex-col items-center justify-center p-4"
 						>
 							{showScanner ? (
-								<div className="w-full max-w-xs">
-									<div className="bg-gray-100 dark:bg-gray-700 rounded-lg aspect-square flex items-center justify-center">
-										{/* QR Scanner Component would go here */}
-										<p className="text-center text-gray-500 dark:text-gray-400 px-4">
-											Camera access required for QR scanning. Please allow when
-											prompted.
-										</p>
+								<div className="w-full max-w-md">
+									{/* Camera viewport */}
+									<div className="relative bg-black rounded-lg overflow-hidden aspect-video mb-4">
+										{cameraError ? (
+											<div className="absolute inset-0 flex items-center justify-center p-4 bg-gray-800">
+												<p className="text-center text-white">{cameraError}</p>
+											</div>
+										) : (
+											<>
+												<video
+													ref={videoRef}
+													autoPlay
+													playsInline
+													muted
+													className="w-full h-full object-cover"
+												/>
+												{/* Scanner guide overlay */}
+												<div className="absolute inset-0 flex items-center justify-center">
+													<div className="w-64 h-64 border-2 border-white border-opacity-70 rounded-lg"></div>
+												</div>
+												{/* Scanning animation */}
+												<div className="absolute inset-x-0 top-1/2 h-0.5 bg-primary-lighter opacity-70">
+													<motion.div
+														className="absolute inset-0"
+														animate={{
+															y: [-50, 50, -50],
+														}}
+														transition={{
+															duration: 2.5,
+															repeat: Infinity,
+															ease: "easeInOut",
+														}}
+													/>
+												</div>
+											</>
+										)}
 									</div>
-									<button
-										onClick={() => setShowScanner(false)}
-										className="mt-4 w-full py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
-									>
-										Cancel Scanning
-									</button>
+
+									{/* Camera controls */}
+									<div className="flex justify-between mb-4">
+										<button
+											onClick={() => setShowScanner(false)}
+											className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm flex-1 mr-2"
+										>
+											Cancel
+										</button>
+										{isMobile && (
+											<button
+												onClick={switchCamera}
+												className="px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+											>
+												<FaCamera /> Switch Camera
+											</button>
+										)}
+									</div>
+
+									<p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+										Position the QR code within the frame to scan it
+									</p>
 								</div>
 							) : (
 								<div className="text-center p-4">

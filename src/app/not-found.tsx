@@ -1,131 +1,159 @@
-// app/not-found.tsx
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
-import { FiHome, FiSearch } from "react-icons/fi";
-import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { FaHome, FaQuestion, FaUsers } from "react-icons/fa";
+import { useEffect, useState } from "react";
+
+interface Bubble {
+	id: number;
+	size: number;
+	left: string;
+	animationDuration: number;
+	initialDelay: number;
+}
 
 export default function NotFound() {
-	const [mounted, setMounted] = useState(false);
-	const [randomIndex, setRandomIndex] = useState(0);
+	const [bubbles, setBubbles] = useState<Array<Bubble>>([]);
 
-	// Animation only after mounting to prevent hydration issues
+	// Animation variants
+	const containerVariants = {
+		hidden: { opacity: 0 },
+		visible: {
+			opacity: 1,
+			transition: {
+				staggerChildren: 0.1,
+				delayChildren: 0.2,
+			},
+		},
+	};
+
+	const itemVariants = {
+		hidden: { opacity: 0, y: 20 },
+		visible: {
+			opacity: 1,
+			y: 0,
+			transition: { duration: 0.5 },
+		},
+	};
+
+	// Bubbles animation
+	// Generate bubbles only on the client side to avoid hydration mismatch
 	useEffect(() => {
-		setMounted(true);
+		const generatedBubbles = Array.from({ length: 10 }).map((_, i) => ({
+			id: i,
+			size: Math.random() * 40 + 10,
+			left: `${Math.random() * 100}%`,
+			animationDuration: Math.random() * 10 + 5,
+			initialDelay: Math.random() * 5,
+		}));
+		setBubbles(generatedBubbles);
 	}, []);
 
-	// Random questions that could lead to a 404
-	const randomQuestions = [
-		"Who moved this page?",
-		"Where did everyone go?",
-		"Is anybody here?",
-		"Did this group disappear?",
-		"Am I in the wrong place?",
-	];
-
-	useEffect(() => {
-		setRandomIndex(Math.floor(Math.random() * randomQuestions.length));
-	}, [randomQuestions.length]);
-
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-white to-blue-50 flex items-center justify-center px-4 py-10">
-			<div className="max-w-md w-full text-center">
-				{mounted && (
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.5 }}
-					>
-						<div className="relative mb-6 sm:mb-8">
-							<motion.div
-								initial={{ scale: 0.8 }}
-								animate={{ scale: [0.8, 1.2, 1] }}
-								transition={{ duration: 0.6, times: [0, 0.5, 1] }}
-								className="text-[10rem] font-bold leading-none text-gray-200"
-							>
-								404
-							</motion.div>
+		<div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-primary-darkest to-primary-darker text-white px-4">
+			{/* Animated background bubbles */}
+			{bubbles.map((bubble) => (
+				<motion.div
+					key={bubble.id}
+					className="absolute rounded-full bg-white/10"
+					style={{
+						width: bubble.size,
+						height: bubble.size,
+						left: bubble.left,
+						bottom: -bubble.size,
+					}}
+					initial={{ y: 0, opacity: 0.3 }}
+					animate={{
+						y: [0, -1000],
+						opacity: [0.3, 0],
+					}}
+					transition={{
+						duration: bubble.animationDuration,
+						repeat: Infinity,
+						delay: bubble.initialDelay,
+						ease: "linear",
+					}}
+				/>
+			))}
 
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								transition={{ delay: 0.3, duration: 0.5 }}
-								className="absolute inset-0 flex items-center justify-center"
-							>
-								<h1 className="text-4xl font-bold text-[#426EFF] flex items-center justify-center">
-									<span>WHO</span>
-									<span className="relative">
-										R
-										<motion.span
-											animate={{ rotate: [0, -15, 0, 15, 0] }}
-											transition={{
-												repeat: Infinity,
-												repeatDelay: 4,
-												duration: 1.5,
-											}}
-											className="inline-block"
-										>
-											U
-										</motion.span>
-									</span>
-									<span>?</span>
-								</h1>
-							</motion.div>
-						</div>
+			{/* Content container */}
+			<motion.div
+				className="relative z-10 max-w-xl w-full text-center my-22 md:my-0"
+				variants={containerVariants}
+				initial="hidden"
+				animate="visible"
+			>
+				{/* Error code */}
+				<motion.div
+					variants={itemVariants}
+					className="text-9xl font-extrabold tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-primary-lightest to-accent-light"
+				>
+					404
+				</motion.div>
 
-						<h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">
-							{randomQuestions[randomIndex]}
-						</h2>
+				{/* Error message */}
+				<motion.h1
+					variants={itemVariants}
+					className="text-3xl md:text-4xl font-bold mb-4"
+				>
+					Page Not Found
+				</motion.h1>
 
-						<p className="text-gray-600 mb-8 sm:mb-10">
-							The page you&apos;re looking for doesn&apos;t exist or might have
-							been moved.
-						</p>
+				<motion.p
+					variants={itemVariants}
+					className="text-lg text-gray-200 mb-8"
+				>
+					Seems like this page has drifted into the deep blue sea. Let&apos;s
+					get you back to safer waters.
+				</motion.p>
 
-						<div className="flex flex-col sm:flex-row justify-center gap-4">
-							<motion.div
-								whileHover={{ scale: 1.05 }}
-								whileTap={{ scale: 0.95 }}
-							>
-								<Link href="/" className="inline-block w-full">
-									<button className="w-full px-6 py-3 rounded-lg bg-[#426EFF] text-white font-medium transition-all hover:shadow-md hover:bg-blue-600 flex items-center justify-center">
-										<FiHome className="mr-2" />
-										Back to Home
-									</button>
-								</Link>
-							</motion.div>
+				{/* Navigation options */}
+				<motion.div
+					variants={itemVariants}
+					className="bg-white/10 backdrop-blur-md rounded-2xl p-12 mb-8"
+				>
+					<h2 className="text-xl font-semibold mb-4">
+						Where would you like to go?
+					</h2>
 
-							<motion.div
-								whileHover={{ scale: 1.05 }}
-								whileTap={{ scale: 0.95 }}
-							>
-								<Link href="/join" className="inline-block w-full">
-									<button className="w-full px-6 py-3 rounded-lg border-2 border-[#426EFF] text-[#426EFF] font-medium transition-all hover:bg-blue-50 flex items-center justify-center">
-										<FiSearch className="mr-2" />
-										Find Groups
-									</button>
-								</Link>
-							</motion.div>
-						</div>
-
-						<motion.div
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							transition={{ delay: 0.6 }}
-							className="mt-16 text-sm text-gray-500"
+					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+						<Link
+							href="/"
+							className="flex flex-col items-center p-4 rounded-lg hover:bg-white/10 transition-colors"
 						>
-							<p>
-								Lost? Try creating a{" "}
-								<Link href="/create" className="text-[#426EFF] hover:underline">
-									new question space
-								</Link>
-								.
-							</p>
-						</motion.div>
-					</motion.div>
-				)}
-			</div>
+							<FaHome className="text-2xl mb-2" />
+							<span className="">Home</span>
+						</Link>
+
+						<Link
+							href="/join"
+							className="flex flex-col items-center p-4 rounded-lg hover:bg-white/10 transition-colors"
+						>
+							<FaUsers className="text-2xl mb-2" />
+							<span>Join a Group</span>
+						</Link>
+
+						<Link
+							href="/create"
+							className="flex flex-col items-center p-4 rounded-lg hover:bg-white/10 transition-colors"
+						>
+							<FaQuestion className="text-2xl mb-2" />
+							<span>Create a Group</span>
+						</Link>
+					</div>
+				</motion.div>
+
+				{/* Back button */}
+				<motion.div variants={itemVariants}>
+					<button
+						onClick={() => window.history.back()}
+						className="inline-flex items-center px-6 py-3 rounded-lg border-2 border-white/30 hover:bg-white/10 transition-colors"
+					>
+						← Go Back
+					</button>
+				</motion.div>
+			</motion.div>
 		</div>
 	);
 }
