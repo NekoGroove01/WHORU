@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { FaArrowRight, FaUsers } from "react-icons/fa";
@@ -28,16 +27,6 @@ const staggerContainer = {
 };
 
 export default function HomePage() {
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [scrollY, setScrollY] = useState(0);
-
-	// Update scroll position for animations
-	useEffect(() => {
-		const handleScroll = () => setScrollY(window.scrollY);
-		window.addEventListener("scroll", handleScroll, { passive: true });
-		return () => window.removeEventListener("scroll", handleScroll);
-	}, []);
-
 	return (
 		<main className="min-h-screen">
 			{/* Hero Section */}

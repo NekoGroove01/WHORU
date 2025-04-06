@@ -22,11 +22,11 @@ export default function RootLayout({
 		>
 			<body className={`${pretendard.className}`}>
 				<ThemeProvider>{children}</ThemeProvider>
+				{/* Theme Toggle - Fixed position */}
+				<div className="fixed bottom-5 right-5">
+					<ThemeToggle />
+				</div>
 			</body>
-			{/* Theme Toggle - Fixed position */}
-			<div className="fixed bottom-5 right-5">
-				<ThemeToggle />
-			</div>
 		</html>
 	);
 }

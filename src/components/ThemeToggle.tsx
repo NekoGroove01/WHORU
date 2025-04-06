@@ -1,4 +1,6 @@
 // components/ThemeToggle.tsx
+"use client";
+
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { FiSun, FiMoon } from "react-icons/fi";
