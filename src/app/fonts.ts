@@ -12,8 +12,8 @@ export const gmarketSans = localFont({
 export const pretendard = localFont({
 	src: [
 		{
-			path: "./fonts/Pretendard-Light.woff2",
-			weight: "300",
+			path: "./fonts/Pretendard-Regular.woff2",
+			weight: "400",
 			style: "normal",
 		},
 		{
@@ -22,8 +22,13 @@ export const pretendard = localFont({
 			style: "normal",
 		},
 		{
-			path: "./fonts/Pretendard-Bold.woff2",
-			weight: "700",
+			path: "./fonts/Pretendard-SemiBold.woff2",
+			weight: "600",
+			style: "normal",
+		},
+		{
+			path: "./fonts/Pretendard-ExtraBold.woff2",
+			weight: "800",
 			style: "normal",
 		},
 	],

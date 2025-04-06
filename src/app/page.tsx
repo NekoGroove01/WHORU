@@ -1,175 +1,202 @@
-// app/page.tsx
 "use client";
 
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FiUsers, FiLock, FiMessageSquare } from "react-icons/fi";
+import { motion } from "framer-motion";
+import { FaArrowRight, FaUsers } from "react-icons/fa";
+import { MdOutlinePublic } from "react-icons/md";
+import { FeatureCard } from "@/components/FeatureCard";
 
-export default function Home() {
-  const features = [
-    {
-      icon: <FiUsers className="w-6 h-6 text-[#426EFF]" />,
-      title: "Anonymous Interaction",
-      description:
-        "Ask questions and provide answers without revealing your identity.",
-    },
-    {
-      icon: <FiLock className="w-6 h-6 text-[#426EFF]" />,
-      title: "Public & Private Groups",
-      description:
-        "Create open communities or closed groups with invitation-only access.",
-    },
-    {
-      icon: <FiMessageSquare className="w-6 h-6 text-[#426EFF]" />,
-      title: "Real-time Updates",
-      description:
-        "Watch as new questions and answers appear instantly in your groups.",
-    },
-  ];
+// Animation variants
+const fadeIn = {
+	hidden: { opacity: 0, y: 20 },
+	visible: {
+		opacity: 1,
+		y: 0,
+		transition: { duration: 0.6 },
+	},
+};
 
-  return (
-    <main className="min-h-screen flex flex-col">
-      {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center px-6 py-28 md:py-32 text-center bg-gradient-to-b from-white to-blue-50">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-4xl mx-auto"
-        >
-          <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight">
-            WHO<span className="text-[#426EFF]">R</span>U
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-700 mb-14 max-w-2xl mx-auto">
-            Ask questions freely. Get honest answers anonymously. No identities,
-            just genuine conversations.
-          </p>
+const staggerContainer = {
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: {
+			staggerChildren: 0.2,
+		},
+	},
+};
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/create" className="inline-block">
-                <button className="px-8 py-4 rounded-lg bg-[#426EFF] text-white font-medium text-lg transition-all hover:shadow-lg hover:bg-blue-600">
-                  Create a Group
-                </button>
-              </Link>
-            </motion.div>
+export default function HomePage() {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const [scrollY, setScrollY] = useState(0);
 
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/join" className="inline-block">
-                <button className="px-8 py-4 rounded-lg border-2 border-[#426EFF] text-[#426EFF] font-medium text-lg transition-all hover:bg-blue-50">
-                  Join Existing Group
-                </button>
-              </Link>
-            </motion.div>
-          </div>
-        </motion.div>
-      </section>
+	// Update scroll position for animations
+	useEffect(() => {
+		const handleScroll = () => setScrollY(window.scrollY);
+		window.addEventListener("scroll", handleScroll, { passive: true });
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, []);
 
-      {/* Features Section */}
-      <section className="py-24 md:py-28 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-16">How It Works</h2>
+	return (
+		<main className="min-h-screen">
+			{/* Hero Section */}
+			<section className="relative h-screen flex items-center overflow-hidden">
+				<div className="absolute inset-0 opacity-10 z-0"></div>
 
-          <div className="grid md:grid-cols-3 gap-10">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="p-8 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="mb-6 p-4 rounded-full bg-blue-50 inline-block">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold mb-4">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+				<div className="container mx-auto px-6 z-10 relative">
+					<motion.div
+						initial="hidden"
+						animate="visible"
+						variants={staggerContainer}
+						className="max-w-3xl"
+					>
+						<motion.h1 variants={fadeIn} className="mb-6 text-5xl md:text-7xl">
+							<span>WHO</span>
+							<span className="logo-accent">R</span>
+							<span>U</span>
+						</motion.h1>
 
-      {/* CTA Section */}
-      <section className="py-24 md:py-28 px-6 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl font-bold mb-8">
-              Ready to start the conversation?
-            </h2>
-            <p className="text-lg text-gray-700 mb-12">
-              Create your first question space and invite others to join. No
-              sign-up required, just genuine anonymous interactions.
-            </p>
+						<motion.p
+							variants={fadeIn}
+							className="text-xl md:text-2xl mb-8 text-gray-700 dark:text-gray-300"
+						>
+							Anonymous Q&A platform where questions flow freely and answers
+							remain honest, all while keeping identities hidden beneath the
+							surface.
+						</motion.p>
 
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/create" className="inline-block">
-                <button className="px-10 py-4 rounded-lg bg-[#426EFF] text-white font-medium text-lg transition-all hover:shadow-lg hover:bg-blue-600">
-                  Get Started Now
-                </button>
-              </Link>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
+						<motion.div
+							variants={fadeIn}
+							className="flex flex-col sm:flex-row gap-4"
+						>
+							<Link
+								href="/create"
+								className="btn-primary flex items-center justify-center gap-2"
+							>
+								Create a Group <FaArrowRight className="text-sm" />
+							</Link>
+							<Link
+								href="/join"
+								className="btn-secondary flex items-center justify-center gap-2"
+							>
+								Join a Group <FaUsers className="text-sm" />
+							</Link>
+						</motion.div>
+					</motion.div>
+				</div>
 
-      {/* FAQ Section */}
-      <section id="FAQ" className="py-24 md:py-28 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-16">FAQs</h2>
+				{/* Animated wave decoration */}
+				<motion.div
+					className="absolute bottom-0 left-0 w-full h-24 md:h-32 z-0"
+					style={{
+						background: `url('/images/wave.svg') repeat-x`,
+						backgroundSize: "contain",
+					}}
+					animate={{
+						x: [0, -50],
+						transition: {
+							x: {
+								repeat: Infinity,
+								repeatType: "loop",
+								duration: 20,
+								ease: "linear",
+							},
+						},
+					}}
+				/>
+			</section>
 
-          <div className="grid md:grid-cols-2 gap-10">
-            <div>
-              <h3 className="text-xl font-semibold mb-4">What is WHORU?</h3>
-              <p className="text-gray-600">
-                WHORU is a platform where you can create and join question
-                spaces to ask and answer questions anonymously. It&apos;s a safe
-                space for genuine conversations without the fear of judgment.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-4">
-                How do I create a group?
-              </h3>
-              <p className="text-gray-600">
-                To create a group, click on the &quot;Create a Group&quot;
-                button on the homepage. Enter the group name and description,
-                and share the link with others to join.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-4">
-                Can I join multiple groups?
-              </h3>
-              <p className="text-gray-600">
-                Yes, you can join as many groups as you want. Each group has a
-                unique link that you can use to access the group anytime.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-4">
-                Is WHORU free to use?
-              </h3>
-              <p className="text-gray-600">
-                Yes, WHORU is completely free to use. You don&apos;t need to
-                sign up or create an account to ask or answer questions.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+			{/* Features Section */}
+			<section className="py-20 bg-gray-50 dark:bg-gray-800">
+				<div className="container mx-auto px-6">
+					<motion.div
+						initial="hidden"
+						whileInView="visible"
+						viewport={{ once: true, margin: "-100px" }}
+						variants={staggerContainer}
+						className="text-center mb-16"
+					>
+						<motion.h2 variants={fadeIn} className="mb-4 text-3xl md:text-4xl">
+							How It Works
+						</motion.h2>
+						<motion.p
+							variants={fadeIn}
+							className="max-w-2xl mx-auto text-gray-600 dark:text-gray-400"
+						>
+							Ask questions anonymously, create private or public groups, and
+							connect with others without revealing your identity.
+						</motion.p>
+					</motion.div>
 
-      {/* Footer */}
-      <footer className="py-8 px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto text-center text-gray-500">
-          <p>© {new Date().getFullYear()} WHORU. All rights reserved.</p>
-        </div>
-      </footer>
-    </main>
-  );
+					{/* Feature Section */}
+					<FeatureCard />
+				</div>
+			</section>
+
+			{/* CTA Section */}
+			<section className="py-20">
+				<div className="container mx-auto px-6">
+					<motion.div
+						initial="hidden"
+						whileInView="visible"
+						viewport={{ once: true, margin: "-100px" }}
+						className="bg-gradient-primary rounded-2xl p-8 md:p-12 text-white text-center"
+					>
+						<motion.h2 variants={fadeIn} className="mb-6 text-3xl md:text-4xl">
+							Ready to start asking questions?
+						</motion.h2>
+						<motion.p variants={fadeIn} className="mb-8 max-w-2xl mx-auto">
+							No sign ups. No personal data. Just pure anonymous interaction.
+						</motion.p>
+						<motion.div
+							variants={fadeIn}
+							className="flex flex-col sm:flex-row gap-4 justify-center"
+						>
+							<Link
+								href="/public-groups"
+								className="bg-white text-primary px-6 py-3 rounded-lg font-medium text-lg transition-all hover:shadow-lg flex items-center justify-center gap-2"
+							>
+								Browse Public Groups <MdOutlinePublic />
+							</Link>
+							<Link
+								href="/create-group"
+								className="border-2 border-white bg-transparent px-6 py-3 rounded-lg font-medium text-lg transition-all hover:bg-white/10 flex items-center justify-center gap-2"
+							>
+								Create Your Group <FaArrowRight className="text-sm" />
+							</Link>
+						</motion.div>
+					</motion.div>
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ delay: 0.6 }}
+						className="mt-16 text-center"
+					>
+						<p className="text-gray-700 dark:text-gray-300 mb-8">
+							Contact the WHO{""}
+							<span className="text-primary dark:text-primary-light">R</span>U
+							teams
+						</p>
+						<a
+							href="/contact"
+							className="btn-primary inline-flex items-center hover:opacity-90"
+						>
+							Contact Support
+						</a>
+					</motion.div>
+				</div>
+			</section>
+
+			{/* Footer Section */}
+			<footer className="py-10 bg-gray-100 dark:bg-gray-800">
+				<div className="container mx-auto px-6 text-center">
+					<p className="text-gray-600 dark:text-gray-400">
+						&copy; {new Date().getFullYear()} WHO
+						<span className="logo-accent">R</span>U. All rights reserved.
+					</p>
+				</div>
+			</footer>
+		</main>
+	);
 }

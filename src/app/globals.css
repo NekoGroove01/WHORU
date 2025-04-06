@@ -1,48 +1,151 @@
+/* app/globals.css */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Custom font settings */
+@theme inline {
+	--font-gmarket: var(--font-gmarket-sans);
+	--font-pretendard: var(--font-pretendard);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-gmarket: var(--font-gmarket-sans);
-  --font-pretendard: var(--font-pretendard);
+/* Define main theme colors */
+@theme {
+	/* Primary deep blue sea colors */
+	--color-primary-lightest: #7fcdff;
+	--color-primary-lighter: #48b0e9;
+	--color-primary-light: #1a91d1;
+	--color-primary: #0077b6;
+	--color-primary-dark: #00598a;
+	--color-primary-darker: #003d5b;
+	--color-primary-darkest: #001f2e;
+
+	/* Secondary teal accent colors */
+	--color-accent-lightest: #98e2e2;
+	--color-accent-light: #5ecece;
+	--color-accent: #20b2aa;
+	--color-accent-dark: #178582;
+	--color-accent-darkest: #0e5654;
+
+	/* Gradient colors */
+	--color-gradient-from: #0077b6;
+	--color-gradient-to: #023e8a;
+
+	/* Alternate gradient for accents */
+	--color-gradient-accent-from: #0096c7;
+	--color-gradient-accent-to: #20b2aa;
+
+	/* Monochrome colors */
+	--color-gray-50: #f8f9fa;
+	--color-gray-100: #f1f3f5;
+	--color-gray-200: #e9ecef;
+	--color-gray-300: #dee2e6;
+	--color-gray-400: #ced4da;
+	--color-gray-500: #adb5bd;
+	--color-gray-600: #868e96;
+	--color-gray-700: #495057;
+	--color-gray-800: #343a40;
+	--color-gray-900: #212529;
+
+	/* Success/Error/Warning colors */
+	--color-success: #099268;
+	--color-error: #e03131;
+	--color-warning: #f59f00;
+	--color-info: #1c7ed6;
+}
+
+/* Configure dark mode using class-based strategy */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Base styles */
+html {
+	letter-spacing: -0.025em; /* -2.5% letter spacing */
+	@apply antialiased;
+	@apply bg-white text-gray-900 transition-colors duration-200;
+}
+
+html.dark {
+	@apply bg-gray-900 text-white;
+}
+
+body {
+	@apply min-h-screen;
+}
+
+/* Typography scale */
+h1 {
+	@apply text-5xl md:text-7xl font-extrabold tracking-tight;
+}
+
+h2 {
+	@apply text-3xl md:text-4xl font-semibold tracking-tight;
+}
+
+h3 {
+	@apply text-xl md:text-2xl font-medium tracking-tight;
+}
+
+label {
+	@apply font-medium;
+}
+
+p {
+	@apply text-base font-normal;
+}
+
+/* Style for the gradient background elements */
+@utility bg-gradient-primary {
+	@apply bg-gradient-to-r from-[var(--color-gradient-from)] to-[var(--color-gradient-to)];
+}
+
+/* Button styles */
+.btn-primary {
+	@apply px-6 py-3 rounded-lg bg-gradient-primary text-white font-medium text-lg 
+         transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-secondary {
+	@apply px-6 py-3 rounded-lg border-2 border-primary-light text-primary
+         font-medium text-lg transition-all hover:bg-blue-50 dark:hover:bg-gray-800
+         dark:border-primary-light dark:text-primary-light;
+}
+
+/* Form styles */
+input,
+textarea,
+select {
+	@apply block w-full rounded-md border-gray-300 dark:border-gray-700 
+         dark:bg-gray-800 focus:border-primary focus:ring focus:ring-primary 
+        transition-colors;
+}
+
+/* Utility classes */
+.logo {
+	@apply font-extrabold;
+}
+
+.logo-accent {
+	@apply text-primary dark:text-primary-light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+	html:not([data-theme="light"]) {
+		color-scheme: dark;
+	}
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-a,
-span,
-div,
-li,
-ul,
-ol,
-button,
-input,
-textarea {
-  letter-spacing: -0.02em;
+/* Custom scrollbar for the application */
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
 }
 
-p,
-a,
-div,
-li,
-ul,
-ol {
-  font-weight: 300;
+::-webkit-scrollbar-track {
+	@apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+	@apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	@apply bg-gray-400 dark:bg-gray-500;
 }

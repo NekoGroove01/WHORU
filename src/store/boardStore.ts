@@ -38,7 +38,7 @@ const dummyGroup: Group = {
 // Dummy data for questions
 const dummyQuestions: Question[] = [
 	{
-		id: "q1",
+		id: "123abc",
 		content: "What's the difference between let, const, and var in JavaScript?",
 		nickname: "CuriousCoder",
 		createdAt: new Date("2023-10-25T14:32:00"),
