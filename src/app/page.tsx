@@ -5,26 +5,8 @@ import { motion } from "framer-motion";
 import { FaArrowRight, FaUsers } from "react-icons/fa";
 import { MdOutlinePublic } from "react-icons/md";
 import { FeatureCard } from "@/components/FeatureCard";
-
-// Animation variants
-const fadeIn = {
-	hidden: { opacity: 0, y: 20 },
-	visible: {
-		opacity: 1,
-		y: 0,
-		transition: { duration: 0.6 },
-	},
-};
-
-const staggerContainer = {
-	hidden: { opacity: 0 },
-	visible: {
-		opacity: 1,
-		transition: {
-			staggerChildren: 0.2,
-		},
-	},
-};
+import { staggerContainer, fadeIn } from "@/utils/motion/app";
+import { GroupSection } from "@/components/GroupSection";
 
 export default function HomePage() {
 	return (
@@ -96,6 +78,9 @@ export default function HomePage() {
 				/>
 			</section>
 
+			{/* Group Section */}
+			<GroupSection />
+
 			{/* Features Section */}
 			<section className="py-20 bg-gray-50 dark:bg-gray-800">
 				<div className="container mx-auto px-6">
@@ -143,13 +128,13 @@ export default function HomePage() {
 							className="flex flex-col sm:flex-row gap-4 justify-center"
 						>
 							<Link
-								href="/public-groups"
+								href="/browse"
 								className="bg-white text-primary px-6 py-3 rounded-lg font-medium text-lg transition-all hover:shadow-lg flex items-center justify-center gap-2"
 							>
 								Browse Public Groups <MdOutlinePublic />
 							</Link>
 							<Link
-								href="/create-group"
+								href="/create"
 								className="border-2 border-white bg-transparent px-6 py-3 rounded-lg font-medium text-lg transition-all hover:bg-white/10 flex items-center justify-center gap-2"
 							>
 								Create Your Group <FaArrowRight className="text-sm" />

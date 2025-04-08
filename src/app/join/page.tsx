@@ -9,26 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FaArrowLeft, FaQrcode, FaLink, FaCamera } from "react-icons/fa";
 import TextareaAutosize from "react-textarea-autosize";
-
-// Animation variants
-const fadeIn = {
-	hidden: { opacity: 0, y: 10 },
-	visible: {
-		opacity: 1,
-		y: 0,
-		transition: { duration: 0.4 },
-	},
-};
-
-const pageVariants = {
-	hidden: { opacity: 0 },
-	visible: {
-		opacity: 1,
-		transition: {
-			staggerChildren: 0.1,
-		},
-	},
-};
+import { fadeIn, pageVariants } from "@/utils/motion/app";
 
 // Form schema using zod
 const joinSchema = z.object({
