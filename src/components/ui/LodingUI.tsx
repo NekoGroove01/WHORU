@@ -1,3 +1,29 @@
+/**
+Here is how to use this component:
+<LoadingUI />
+
+// Loading with text
+<LoadingUI text="Loading questions..." />
+
+// Small dots animation in gray
+<LoadingUI variant="dots" size="sm" color="gray" />
+
+// Large pulsing loader in white (good for dark backgrounds)
+<LoadingUI variant="pulse" size="lg" color="white" />
+
+// Full screen overlay loader (for page transitions)
+<LoadingUI fullscreen overlay text="Please wait..." />
+
+// Wave animation
+<LoadingUI variant="wave" size="md" color="secondary" />
+
+// Inside a card or container
+<div className="relative min-h-[200px]">
+  <LoadingUI className="absolute inset-0" />
+</div>
+
+ */
+
 "use client";
 
 import { motion } from "framer-motion";
