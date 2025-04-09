@@ -1,8 +1,5 @@
 // animations/main.ts
 
-import { Transition } from "@headlessui/react";
-
-// Animation variants
 export const fadeIn = {
 	hidden: { opacity: 0, y: 10 },
 	visible: {
