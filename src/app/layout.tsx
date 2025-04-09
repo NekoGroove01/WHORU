@@ -3,6 +3,7 @@ import { gmarketSans, pretendard } from "@/app/fonts";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
 	title: "Create Next App",
@@ -23,6 +24,8 @@ export default function RootLayout({
 			<body className={`${pretendard.className}`} suppressHydrationWarning>
 				<ThemeProvider>
 					{children}
+					{/* Footer */}
+					<Footer />
 					{/* Theme Toggle - Fixed position */}
 					<div className="fixed bottom-5 right-5">
 						<ThemeToggle />
