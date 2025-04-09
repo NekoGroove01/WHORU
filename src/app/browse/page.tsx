@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -13,39 +13,9 @@ import {
 	FaTimes,
 	FaArrowLeft,
 } from "react-icons/fa";
-
-// Animation variants
-const fadeIn = {
-	hidden: { opacity: 0, y: 20 },
-	visible: {
-		opacity: 1,
-		y: 0,
-		transition: { duration: 0.5 },
-	},
-};
-
-const staggerContainer = {
-	hidden: { opacity: 0 },
-	visible: {
-		opacity: 1,
-		transition: {
-			staggerChildren: 0.1,
-		},
-	},
-};
-
-// Type definitions
-type Group = {
-	id: string;
-	name: string;
-	description: string;
-	memberCount: number;
-	questionCount: number;
-	tags: string[];
-	isActive: boolean;
-	lastActivity?: string; // ISO date string
-	createdAt?: string; // ISO date string
-};
+import { fadeIn, staggerContainer } from "@/utils/motion/app";
+import { Group } from "@/types/browse";
+import { GroupCard } from "@/components/browse/GroupCard";
 
 // Form schema for filters
 const filterSchema = z.object({
@@ -57,6 +27,35 @@ const filterSchema = z.object({
 
 type FilterValues = z.infer<typeof filterSchema>;
 
+/**
+ * Sorts groups based on the given sort type.
+ *
+ * @param {Group[]} groupsToSort - The array of groups to sort
+ * @param {string} sortType - The type of sorting to apply
+ * @returns {Group[]} - The sorted array of groups
+ */
+const sortGroups = (groupsToSort: Group[], sortType: string): Group[] => {
+	switch (sortType) {
+		case "newest":
+			return [...groupsToSort].sort(
+				(a, b) =>
+					new Date(b.createdAt ?? "").getTime() -
+					new Date(a.createdAt ?? "").getTime()
+			);
+		case "popular":
+			return [...groupsToSort].sort((a, b) => b.memberCount - a.memberCount);
+		case "active":
+			return [...groupsToSort].sort((a, b) => {
+				// First sort by isActive
+				if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+				// Then by question count
+				return b.questionCount - a.questionCount;
+			});
+		default:
+			return groupsToSort;
+	}
+};
+
 export default function BrowsePage() {
 	const [groups, setGroups] = useState<Group[]>([]);
 	const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
@@ -65,113 +64,101 @@ export default function BrowsePage() {
 	const [isLoading, setIsLoading] = useState(true);
 
 	// Form handling
-	const { register, handleSubmit, watch, reset, setValue } =
-		useForm<FilterValues>({
-			resolver: zodResolver(filterSchema),
-			defaultValues: {
-				search: "",
-				tags: [],
-				status: "all",
-				sort: "popular",
-			},
-		});
+	const { register, watch, reset, setValue } = useForm<FilterValues>({
+		resolver: zodResolver(filterSchema),
+		defaultValues: {
+			search: "",
+			tags: [],
+			status: "all",
+			sort: "popular",
+		},
+	});
 
 	const watchedValues = watch();
 
-	const dummyLoading = () => {
-		setGroups(dummyGroups);
-		setFilteredGroups(dummyGroups);
-
-		// Extract all unique tags
-		const tagSet = new Set<string>();
-		dummyGroups.forEach((group) => {
-			group.tags.forEach((tag) => tagSet.add(tag));
-		});
-		setAllTags(Array.from(tagSet));
-
-		setIsLoading(false);
-	};
-
-    const sortGroups = useCallback(
-        (groupsToSort: Group[], sortType: string): Group[] => {
-            switch (sortType) {
-                case "newest":
-                    return [...groupsToSort].sort(
-                        (a, b) =>
-                            new Date(b.createdAt ?? "").getTime() -
-                            new Date(a.createdAt ?? "").getTime()
-                    );
-                case "popular":
-                    return [...groupsToSort].sort((a, b) => b.memberCount - a.memberCount);
-                case "active":
-                    return [...groupsToSort].sort((a, b) => {
-                        // First sort by isActive
-                        if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
-                        // Then by question count
-                        return b.questionCount - a.questionCount;
-                    });
-                default:
-                    return groupsToSort;
-            }
-        },
-        []
-    );
-
+	// apply filters when the search form values change
 	const applyFilters = useCallback(
 		(filters: FilterValues) => {
 			let result = [...groups];
 
 			// Apply search filter
-			if (filters.search) {
-				const searchLower = filters.search.toLowerCase();
-				result = result.filter(
-					(group) =>
-						group.name.toLowerCase().includes(searchLower) ||
-						group.description.toLowerCase().includes(searchLower) ||
-						group.tags.some((tag) => tag.toLowerCase().includes(searchLower))
-				);
-			}
+			result = applySearchFilter(result, filters.search);
 
 			// Apply tag filter
-			if (filters.tags && filters.tags.length > 0) {
-				result = result.filter((group) =>
-					filters.tags!.some((tag) => group.tags.includes(tag))
-				);
-			}
+			result = applyTagFilter(result, filters.tags);
 
 			// Apply status filter
-			if (filters.status !== "all") {
-				result = result.filter(
-					(group) =>
-						(filters.status === "active" && group.isActive) ||
-						(filters.status === "quiet" && !group.isActive)
-				);
-			}
+			result = applyStatusFilter(result, filters.status);
 
 			// Apply sorting
 			result = sortGroups(result, filters.sort);
 
 			setFilteredGroups(result);
 		},
-		[groups, sortGroups]
+		[groups]
 	);
+
+	// --- Filter Functions (useEffect) ---
+
+	// Helper functions for filtering
+	const applySearchFilter = (items: Group[], search?: string) => {
+		if (!search) return items;
+
+		const searchLower = search.toLowerCase();
+		return items.filter(
+			(group) =>
+				group.name.toLowerCase().includes(searchLower) ||
+				group.description.toLowerCase().includes(searchLower) ||
+				group.tags.some((tag) => tag.toLowerCase().includes(searchLower))
+		);
+	};
+
+	const applyTagFilter = (items: Group[], tags?: string[]) => {
+		if (!tags?.length) return items;
+		return items.filter((group) =>
+			tags.some((tag) => group.tags.includes(tag))
+		);
+	};
+
+	const applyStatusFilter = (items: Group[], status: string) => {
+		if (status === "all") return items;
+		const isActive = status === "active";
+		return items.filter((group) => group.isActive === isActive);
+	};
+
+	// --- End Filter Functions (useEffect) ---
 
 	// Apply filters when form values change
 	useEffect(() => {
 		if (isLoading) return;
 
-		applyFilters(watchedValues);
+		const debounceTimer = setTimeout(() => {
+			applyFilters(watchedValues);
+		}, 300); // 300ms debounce delay
+
+		return () => clearTimeout(debounceTimer);
 	}, [watchedValues, isLoading, applyFilters]);
 
-	// Load dummy data and extract all tags
+	// Simulate API call with an actual delay
 	useEffect(() => {
-		// Simulate API call
+		setGroups(dummyGroups);
+		setFilteredGroups(dummyGroups);
 
-		setTimeout(() => {
-			dummyLoading();
-		}, 800);
+		// Extract all unique tags
+		const tagSet = new Set(dummyGroups.flatMap((group) => group.tags));
+		setAllTags(Array.from(tagSet));
+
+		setIsLoading(false);
 	}, []);
 
+	/**
+	 * Toggles a tag in the watched form values.
+	 * If the tag already exists in the array, it will be removed;
+	 * otherwise, it will be added.
+	 *
+	 * @param {string} tag - The tag to toggle in the form values
+	 * @returns {void}
+	 */
 	const toggleTag = (tag: string) => {
 		const currentTags = watchedValues.tags || [];
 		if (currentTags.includes(tag)) {
@@ -246,7 +233,7 @@ export default function BrowsePage() {
 					<div className="flex items-center gap-2">
 						<button
 							onClick={() => setShowFilters(!showFilters)}
-							className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+							className="flex items-center gap-2 px-4 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
 						>
 							<FaFilter className="text-primary dark:text-primary-light" />
 							<span>Filters</span>
@@ -265,7 +252,7 @@ export default function BrowsePage() {
 							</span>
 							<select
 								{...register("sort")}
-								className="py-2 pr-8 border-0 bg-transparent focus:ring-0 text-sm"
+								className="py-2 pr-8 pl-1 border-0 bg-transparent focus:ring-0 text-sm"
 							>
 								<option value="popular">Most Popular</option>
 								<option value="active">Most Active</option>
@@ -285,7 +272,7 @@ export default function BrowsePage() {
 						initial={{ opacity: 0, height: 0 }}
 						animate={{ opacity: 1, height: "auto" }}
 						exit={{ opacity: 0, height: 0 }}
-						className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+						className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 py-4 px-6 mb-6"
 					>
 						<div className="flex justify-between items-center mb-4">
 							<h3 className="font-medium">Filter Options</h3>
@@ -299,29 +286,31 @@ export default function BrowsePage() {
 
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 							{/* Status filter */}
-							<div>
-								<h4 className="text-sm font-medium mb-2">Status</h4>
-								<div className="space-y-2">
+							<div className="">
+								<h4 className="text-md font-medium mb-2">Status</h4>
+								<div className="space-y-2 h-full">
 									{["all", "active", "quiet"].map((status) => (
-										<label key={status} className="flex items-center">
-											<input
-												type="radio"
-												value={status}
-												{...register("status")}
-												className="rounded-full text-primary focus:ring-primary dark:bg-gray-700"
-											/>
+										<div key={status} className="flex items-center px-2 py-1">
+											<label className="w-fit inline-block mr-4">
+												<input
+													type="radio"
+													value={status}
+													{...register("status")}
+													className="rounded-full text-primary focus:ring-primary dark:bg-gray-700"
+												/>
+											</label>
 											<span className="ml-2 text-sm capitalize">
 												{status === "all" ? "All Groups" : `${status} Groups`}
 											</span>
-										</label>
+										</div>
 									))}
 								</div>
 							</div>
 
 							{/* Tags filter */}
 							<div className="md:col-span-2">
-								<h4 className="text-sm font-medium mb-2">Topics</h4>
-								<div className="flex flex-wrap gap-2">
+								<h4 className="text-md font-medium mb-2">Topics</h4>
+								<div className="flex flex-wrap gap-2 p-2 items-center">
 									{allTags.map((tag) => (
 										<button
 											key={tag}
@@ -386,8 +375,8 @@ export default function BrowsePage() {
 						}}
 						className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
 					>
-						{filteredGroups.map((group, index) => (
-							<GroupCard key={group.id} group={group} index={index} />
+						{filteredGroups.map((group) => (
+							<GroupCard key={group.id} group={group} />
 						))}
 					</motion.div>
 				) : (
@@ -406,7 +395,7 @@ export default function BrowsePage() {
 				)}
 
 				{/* Create group CTA */}
-				<div className="mt-12 text-center bg-gradient-to-r from-primary-light to-primary-dark text-white rounded-xl p-8">
+				<div className="mt-12 mb-6 text-center bg-gradient-to-r from-primary-light to-primary-dark text-white rounded-xl p-8">
 					<h2 className="text-2xl font-bold mb-4">
 						Don&apos;t see what you&apos;re looking for?
 					</h2>
@@ -425,77 +414,10 @@ export default function BrowsePage() {
 		</div>
 	);
 }
-
-// Group card component
-function GroupCard({
-	group,
-	index,
-}: Readonly<{ group: Group; index: number }>) {
-	return (
-		<motion.div
-			variants={{
-				hidden: { opacity: 0, y: 20 },
-				visible: {
-					opacity: 1,
-					y: 0,
-					transition: { duration: 0.5 },
-				},
-			}}
-			whileHover={{ y: -5, transition: { duration: 0.2 } }}
-			className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all"
-		>
-			<div className="h-3 bg-gradient-primary" />
-			<div className="p-6">
-				<div className="flex justify-between items-start mb-4">
-					<h3 className="text-xl font-semibold truncate">{group.name}</h3>
-					<span
-						className={`px-2 py-1 text-xs rounded-full ${
-							group.isActive
-								? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-								: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400"
-						}`}
-					>
-						{group.isActive ? "Active" : "Quiet"}
-					</span>
-				</div>
-
-				<p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-					{group.description}
-				</p>
-
-				<div className="flex flex-wrap gap-2 mb-4">
-					{group.tags.map((tag) => (
-						<span
-							key={tag}
-							className="px-2 py-1 bg-primary-lighter/10 dark:bg-primary-darker text-primary dark:text-primary-light text-xs rounded-full"
-						>
-							{tag}
-						</span>
-					))}
-				</div>
-
-				<div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
-					<span>{group.memberCount} members</span>
-					<span>{group.questionCount} questions</span>
-				</div>
-			</div>
-
-			<div className="px-6 py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-				<Link
-					href={`/group/${group.id}`}
-					className="w-full py-2 flex justify-center items-center text-primary dark:text-primary-light hover:underline"
-				>
-					Join Group
-				</Link>
-			</div>
-		</motion.div>
-	);
-}
-
 // Extended dummy data with more groups and dates
 const dummyGroups: Group[] = [
 	{
-		id: "tech-talk",
+		id: "8Fn2JgUWUn57lPGk7L2b3",
 		name: "Tech Talk",
 		description:
 			"Discuss the latest in technology, gadgets, and programming languages. Ask anything from beginner to advanced topics.",
@@ -507,7 +429,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-01-10T09:20:00.000Z",
 	},
 	{
-		id: "campus-connect",
+		id: "3FkL9dG7pQ1mR5sZxC8v2",
 		name: "Campus Connect",
 		description:
 			"Anonymous space for university students to ask questions about courses, professors, and campus life.",
@@ -519,7 +441,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-02-05T11:15:00.000Z",
 	},
 	{
-		id: "startup-founders",
+		id: "7HsT2jK4wP9bN6vX1yZ5m",
 		name: "Startup Founders",
 		description:
 			"A safe space for entrepreneurs to ask sensitive questions about funding, growth, and challenges.",
@@ -531,7 +453,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-03-12T15:30:00.000Z",
 	},
 	{
-		id: "mental-wellbeing",
+		id: "2BcV5gH8nM4kR7sW9xZ3p",
 		name: "Mental Wellbeing",
 		description:
 			"Support community for discussing mental health topics anonymously and without judgment.",
@@ -543,7 +465,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-01-15T08:45:00.000Z",
 	},
 	{
-		id: "career-advice",
+		id: "5Lq9mN3jK7fT2pR8vX4cZ",
 		name: "Career Crossroads",
 		description:
 			"Get anonymous feedback on job offers, salary negotiations, workplace conflicts, and career transitions.",
@@ -555,7 +477,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-02-20T14:30:00.000Z",
 	},
 	{
-		id: "creative-corner",
+		id: "9Dt7bV4fG2hJ5mN8wP3qS",
 		name: "Creative Corner",
 		description:
 			"Share your creative projects and get honest feedback from other artists, writers, and designers.",
@@ -567,7 +489,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-04-05T10:15:00.000Z",
 	},
 	{
-		id: "parent-hub",
+		id: "4Qs8cR2vT9wX6yZ3nM7kP",
 		name: "Parent Hub",
 		description:
 			"A judgment-free zone for parents to ask questions about parenting challenges, children's behavior, and family dynamics.",
@@ -579,7 +501,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-01-05T16:20:00.000Z",
 	},
 	{
-		id: "fitness-goals",
+		id: "6Wt3zN8xR5cV2mL7bK9jH",
 		name: "Fitness Goals",
 		description:
 			"Share fitness questions, workout routines, nutrition advice, and get motivation from fellow fitness enthusiasts.",
@@ -591,7 +513,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-03-01T12:10:00.000Z",
 	},
 	{
-		id: "book-lovers",
+		id: "1Kp7jH4fT9sR2vN5bM8wZ",
 		name: "Book Lovers Anonymous",
 		description:
 			"Discuss books, authors, and literary themes without worrying about judgment for your reading preferences.",
@@ -603,7 +525,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-02-15T09:40:00.000Z",
 	},
 	{
-		id: "gaming-guild",
+		id: "0Gj5hN2pQ8vR4tW7mK3fS",
 		name: "Gaming Guild",
 		description:
 			"Ask questions about games, gaming strategies, equipment, and connect with other gamers anonymously.",
@@ -615,7 +537,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-01-20T11:30:00.000Z",
 	},
 	{
-		id: "relationship-advice",
+		id: "7Zp3xC8vB1nM6kR2fT9qD",
 		name: "Relationship Advice",
 		description:
 			"A supportive space to ask sensitive questions about relationships, dating, and interpersonal dynamics.",
@@ -627,7 +549,7 @@ const dummyGroups: Group[] = [
 		createdAt: "2023-01-12T13:25:00.000Z",
 	},
 	{
-		id: "culinary-questions",
+		id: "2Hs9jN4mP7wQ3bK8vR5zT",
 		name: "Culinary Questions",
 		description:
 			"Ask cooking questions, share recipes, and discuss food-related topics with fellow food enthusiasts.",
