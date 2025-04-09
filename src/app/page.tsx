@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { FaArrowRight, FaUsers } from "react-icons/fa";
 import { MdOutlinePublic } from "react-icons/md";
 import { FeatureCard } from "@/components/FeatureCard";
-import { staggerContainer, fadeIn } from "@/utils/motion/app";
+import { staggerContainer, fadeIn } from "@/utils/motion/basicMotion";
 import { GroupSection } from "@/components/GroupSection";
 
 export default function HomePage() {

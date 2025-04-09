@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Group } from "@/types/browse";
+import { Group } from "@/types/group";
 
 /**
  * GroupCard component

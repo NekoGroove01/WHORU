@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
-import { staggerContainer, fadeIn } from "@/utils/motion/app";
+import { staggerContainer, fadeIn } from "@/utils/motion/basicMotion";
 import { GroupCard } from "@/components/browse/GroupCard";
 
 // Group type definition

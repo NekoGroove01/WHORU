@@ -13,8 +13,8 @@ import {
 	FaTimes,
 	FaArrowLeft,
 } from "react-icons/fa";
-import { fadeIn, staggerContainer } from "@/utils/motion/app";
-import { Group } from "@/types/browse";
+import { fadeIn, staggerContainer } from "@/utils/motion/basicMotion";
+import { Group } from "@/types/group";
 import { GroupCard } from "@/components/browse/GroupCard";
 
 // Form schema for filters
