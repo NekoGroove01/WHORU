@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { gmarketSans, pretendard } from "@/app/fonts";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Footer } from "@/components/Footer";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Footer } from "@/components/ui/Footer";
 
 export const metadata: Metadata = {
 	title: "Create Next App",

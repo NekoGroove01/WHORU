@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,7 +13,12 @@ import {
 	FaTimes,
 	FaArrowLeft,
 } from "react-icons/fa";
-import { fadeIn, staggerContainer } from "@/utils/motion/basicMotion";
+import {
+	fadeIn,
+	showContainer,
+	showContainerChildren,
+	staggerContainer,
+} from "@/utils/motion/basicMotion";
 import { Group } from "@/types/group";
 import { GroupCard } from "@/components/browse/GroupCard";
 
@@ -267,68 +272,77 @@ export default function BrowsePage() {
 				</div>
 
 				{/* Expanded filters */}
-				{showFilters && (
-					<motion.div
-						initial={{ opacity: 0, height: 0 }}
-						animate={{ opacity: 1, height: "auto" }}
-						exit={{ opacity: 0, height: 0 }}
-						className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 py-4 px-6 mb-6"
-					>
-						<div className="flex justify-between items-center mb-4">
-							<h3 className="font-medium">Filter Options</h3>
-							<button
-								onClick={clearFilters}
-								className="text-sm text-primary dark:text-primary-light hover:underline"
+				<AnimatePresence>
+					{showFilters && (
+						<motion.div
+							initial="hidden"
+							animate="visible"
+							exit="hidden"
+							variants={showContainer}
+							className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 py-4 px-6 mb-6"
+						>
+							<motion.div
+								className="flex justify-between items-center mb-4"
+								variants={showContainerChildren}
 							>
-								Clear All
-							</button>
-						</div>
+								<h3 className="font-medium">Filter Options</h3>
+								<button
+									onClick={clearFilters}
+									className="text-sm text-primary dark:text-primary-light hover:underline"
+								>
+									Clear All
+								</button>
+							</motion.div>
 
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-							{/* Status filter */}
-							<div className="">
-								<h4 className="text-md font-medium mb-2">Status</h4>
-								<div className="space-y-2 h-full">
-									{["all", "active", "quiet"].map((status) => (
-										<div key={status} className="flex items-center px-2 py-1">
-											<label className="w-fit inline-block mr-4">
-												<input
-													type="radio"
-													value={status}
-													{...register("status")}
-													className="rounded-full text-primary focus:ring-primary dark:bg-gray-700"
-												/>
-											</label>
-											<span className="ml-2 text-sm capitalize">
-												{status === "all" ? "All Groups" : `${status} Groups`}
-											</span>
-										</div>
-									))}
+							<motion.div
+								className="grid grid-cols-1 md:grid-cols-3 gap-4"
+								variants={showContainerChildren}
+							>
+								{/* Status filter */}
+								<div className="">
+									<h4 className="text-md font-medium mb-2">Status</h4>
+									<div className="space-y-2 h-full">
+										{["all", "active", "quiet"].map((status) => (
+											<div key={status} className="flex items-center px-2 py-1">
+												<label className="w-fit inline-block mr-4">
+													<input
+														type="radio"
+														value={status}
+														{...register("status")}
+														className="rounded-full text-primary focus:ring-primary dark:bg-gray-700"
+													/>
+												</label>
+												<span className="ml-2 text-sm capitalize">
+													{status === "all" ? "All Groups" : `${status} Groups`}
+												</span>
+											</div>
+										))}
+									</div>
 								</div>
-							</div>
 
-							{/* Tags filter */}
-							<div className="md:col-span-2">
-								<h4 className="text-md font-medium mb-2">Topics</h4>
-								<div className="flex flex-wrap gap-2 p-2 items-center">
-									{allTags.map((tag) => (
-										<button
-											key={tag}
-											onClick={() => toggleTag(tag)}
-											className={`px-3 py-1 text-xs rounded-full ${
-												watchedValues.tags?.includes(tag)
-													? "bg-primary text-white"
-													: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-											}`}
-										>
-											{tag}
-										</button>
-									))}
+								{/* Tags filter */}
+								<div className="md:col-span-2">
+									<h4 className="text-md font-medium mb-2">Topics</h4>
+									<div className="flex flex-wrap gap-2 p-2 items-center">
+										{allTags.map((tag) => (
+											<button
+												key={tag}
+												onClick={() => toggleTag(tag)}
+												className={`px-3 py-1 text-xs rounded-full ${
+													watchedValues.tags?.includes(tag)
+														? "bg-primary text-white"
+														: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+												}`}
+											>
+												{tag}
+											</button>
+										))}
+									</div>
 								</div>
-							</div>
-						</div>
-					</motion.div>
-				)}
+							</motion.div>
+						</motion.div>
+					)}
+				</AnimatePresence>
 
 				{/* Groups grid */}
 				{isLoading ? (
