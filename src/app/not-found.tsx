@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { FaHome, FaQuestion, FaUsers } from "react-icons/fa";
 import { useEffect, useState } from "react";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 interface Bubble {
 	id: number;
@@ -15,6 +16,9 @@ interface Bubble {
 
 export default function NotFound() {
 	const [bubbles, setBubbles] = useState<Array<Bubble>>([]);
+
+	// navigation for going previous page
+	const { goBack } = useBackNavigation("/");
 
 	// Animation variants
 	const containerVariants = {
@@ -147,7 +151,7 @@ export default function NotFound() {
 				{/* Back button */}
 				<motion.div variants={itemVariants}>
 					<button
-						onClick={() => window.history.back()}
+						onClick={goBack}
 						className="inline-flex items-center px-6 py-3 rounded-lg border-2 border-white/30 hover:bg-white/10 transition-colors"
 					>
 						← Go Back

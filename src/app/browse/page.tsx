@@ -21,7 +21,7 @@ import {
 } from "@/utils/motion/basicMotion";
 import { Group } from "@/types/group";
 import { GroupCard } from "@/components/browse/GroupCard";
-import { useBackNavigation } from "../hooks/useBackNavigation";
+import { useBackNavigation } from "../../hooks/useBackNavigation";
 
 // Form schema for filters
 const filterSchema = z.object({

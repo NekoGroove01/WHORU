@@ -10,7 +10,7 @@ import { z } from "zod";
 import { FaArrowLeft, FaQrcode, FaLink, FaCamera } from "react-icons/fa";
 import TextareaAutosize from "react-textarea-autosize";
 import { fadeIn, pageVariants } from "@/utils/motion/basicMotion";
-import { useBackNavigation } from "../hooks/useBackNavigation";
+import { useBackNavigation } from "../../hooks/useBackNavigation";
 
 // Form schema using zod
 const joinSchema = z.object({

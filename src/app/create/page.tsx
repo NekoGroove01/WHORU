@@ -16,7 +16,7 @@ import {
 	FaCheck,
 } from "react-icons/fa";
 import { nanoid } from "nanoid";
-import { useBackNavigation } from "../hooks/useBackNavigation";
+import { useBackNavigation } from "../../hooks/useBackNavigation";
 
 // Animation variants
 const fadeIn = {

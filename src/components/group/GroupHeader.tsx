@@ -10,7 +10,7 @@ import {
 	FaQuestionCircle,
 } from "react-icons/fa";
 import { Group } from "@/types/group";
-import { useBackNavigation } from "@/app/hooks/useBackNavigation";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 interface GroupHeader {
 	group: Group;
