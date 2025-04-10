@@ -100,13 +100,16 @@ export default function AskQuestionForm({
 
 			<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 				<div>
+					<p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+						Title:
+					</p>
 					<input
 						type="text"
-						placeholder="Title of your question"
+						placeholder="Title of your question..."
 						{...register("title")}
-						className={`w-full rounded-md ${
+						className={`w-full p-1.5 rounded-md border-2 focus:outline-none focus:ring-0 ${
 							errors.title
-								? "border-red-500"
+								? "!border-red-500"
 								: "border-gray-300 dark:border-gray-600"
 						}`}
 					/>
@@ -116,13 +119,18 @@ export default function AskQuestionForm({
 				</div>
 
 				<div>
+					<p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+						Question:
+					</p>
+				</div>
+				<div>
 					<TextareaAutosize
 						placeholder="Describe your question in detail..."
 						{...register("content")}
 						minRows={3}
-						className={`w-full rounded-md resize-none ${
+						className={`w-full border-2 p-1.5 rounded-md resize-none focus:outline-none focus:ring-0 ${
 							errors.content
-								? "border-red-500"
+								? "!border-red-500"
 								: "border-gray-300 dark:border-gray-600"
 						}`}
 					/>

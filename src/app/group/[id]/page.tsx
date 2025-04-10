@@ -72,7 +72,19 @@ export default function GroupPage() {
 			<GroupHeader group={group} />
 
 			<div className="container mx-auto px-4 mt-6">
-				<div className="flex flex-col lg:flex-row gap-6">
+				<div className="flex flex-col lg:flex-row-reverse gap-6">
+					{/* Sidebar - 30% on desktop */}
+					<div className="w-full lg:w-[30%]">
+						<AskQuestionForm groupId={groupId} />
+
+						<div className="mt-6 hidden lg:block">
+							<TagFilter
+								tags={group.tags}
+								selectedTags={selectedTags}
+								setSelectedTags={setSelectedTags}
+							/>
+						</div>
+					</div>
 					{/* Main content - 70% on desktop */}
 					<div className="w-full lg:w-[70%]">
 						<QuestionTabs
@@ -94,19 +106,6 @@ export default function GroupPage() {
 							activeTab={activeTab}
 							selectedTags={selectedTags}
 						/>
-					</div>
-
-					{/* Sidebar - 30% on desktop */}
-					<div className="w-full lg:w-[30%]">
-						<AskQuestionForm groupId={groupId} />
-
-						<div className="mt-6 hidden lg:block">
-							<TagFilter
-								tags={group.tags}
-								selectedTags={selectedTags}
-								setSelectedTags={setSelectedTags}
-							/>
-						</div>
 					</div>
 				</div>
 			</div>

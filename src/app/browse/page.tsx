@@ -21,6 +21,7 @@ import {
 } from "@/utils/motion/basicMotion";
 import { Group } from "@/types/group";
 import { GroupCard } from "@/components/browse/GroupCard";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 // Form schema for filters
 const filterSchema = z.object({
@@ -67,6 +68,9 @@ export default function BrowsePage() {
 	const [allTags, setAllTags] = useState<string[]>([]);
 	const [showFilters, setShowFilters] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+
+	// Router for going previous page
+	const { goBack } = useBackNavigation("/");
 
 	// Form handling
 	const { register, watch, reset, setValue } = useForm<FilterValues>({
@@ -190,12 +194,12 @@ export default function BrowsePage() {
 			{/* Header */}
 			<div className="bg-gradient-primary text-white">
 				<div className="container mx-auto px-4 py-12">
-					<Link
-						href="/"
+					<button
+						onClick={goBack}
 						className="inline-flex items-center mb-6 text-white/80 hover:text-white"
 					>
 						<FaArrowLeft className="mr-2" /> Back to Home
-					</Link>
+					</button>
 
 					<motion.div
 						initial="hidden"

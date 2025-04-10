@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
 	FaArrowLeft,
@@ -11,6 +10,7 @@ import {
 	FaQuestionCircle,
 } from "react-icons/fa";
 import { Group } from "@/types/group";
+import { useBackNavigation } from "@/app/hooks/useBackNavigation";
 
 interface GroupHeader {
 	group: Group;
@@ -18,6 +18,9 @@ interface GroupHeader {
 
 export default function GroupHeader({ group }: Readonly<GroupHeader>) {
 	const [copied, setCopied] = useState(false);
+
+	// navigation for going previous page
+	const { goBack } = useBackNavigation("/");
 
 	const copyGroupLink = () => {
 		const url = window.location.href;
@@ -28,14 +31,14 @@ export default function GroupHeader({ group }: Readonly<GroupHeader>) {
 
 	return (
 		<div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-			<div className="container mx-auto px-4 py-4">
+			<div className="container mx-auto my-4 px-4 py-4">
 				<div className="flex items-center mb-2">
-					<Link
-						href="/"
+					<button
+						onClick={goBack}
 						className="text-primary dark:text-primary-light mr-3 flex items-center hover:underline"
 					>
 						<FaArrowLeft className="mr-1" /> Back
-					</Link>
+					</button>
 
 					<motion.button
 						onClick={copyGroupLink}
@@ -56,17 +59,17 @@ export default function GroupHeader({ group }: Readonly<GroupHeader>) {
 					</motion.button>
 				</div>
 
-				<h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+				<h1 className="mt-2 !text-4xl !md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
 					{group.name}
 				</h1>
 
 				{group.description && (
-					<p className="text-gray-600 dark:text-gray-300 mb-3 max-w-2xl">
+					<p className="mt-2 text-gray-600 dark:text-gray-300 mb-3 max-w-2xl">
 						{group.description}
 					</p>
 				)}
 
-				<div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+				<div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
 					<div className="flex items-center">
 						<FaUsers className="mr-1" />
 						<span>{group.memberCount} members</span>

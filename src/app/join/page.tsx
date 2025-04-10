@@ -10,6 +10,7 @@ import { z } from "zod";
 import { FaArrowLeft, FaQrcode, FaLink, FaCamera } from "react-icons/fa";
 import TextareaAutosize from "react-textarea-autosize";
 import { fadeIn, pageVariants } from "@/utils/motion/basicMotion";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 // Form schema using zod
 const joinSchema = z.object({
@@ -20,6 +21,8 @@ type JoinFormValues = z.infer<typeof joinSchema>;
 
 export default function JoinPage() {
 	const router = useRouter();
+	// navigation for going previous page
+	const { goBack } = useBackNavigation("/");
 	const [joinMethod, setJoinMethod] = useState<"link" | "qr">("link");
 	const [showScanner, setShowScanner] = useState(false);
 	const [cameraError, setCameraError] = useState<string | null>(null);
@@ -178,12 +181,12 @@ export default function JoinPage() {
 		>
 			<div className="container mx-auto px-4 py-8 flex-grow flex flex-col items-center justify-center max-w-lg">
 				<motion.div variants={fadeIn} className="w-full">
-					<Link
-						href="/"
+					<button
+						onClick={goBack}
 						className="inline-flex items-center text-primary dark:text-primary-light mb-8 hover:underline"
 					>
 						<FaArrowLeft className="mr-2" /> Back to Home
-					</Link>
+					</button>
 				</motion.div>
 
 				<motion.div

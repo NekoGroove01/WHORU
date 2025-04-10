@@ -16,6 +16,7 @@ import {
 	FaCheck,
 } from "react-icons/fa";
 import { nanoid } from "nanoid";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 // Animation variants
 const fadeIn = {
@@ -54,6 +55,8 @@ type CreateFormValues = z.infer<typeof createSchema>;
 
 export default function CreatePage() {
 	const router = useRouter();
+	// navigation for going previous page
+	const { goBack } = useBackNavigation("/");
 	const [isCreated, setIsCreated] = useState(false);
 	const [groupInfo, setGroupInfo] = useState<{
 		id: string;
@@ -132,12 +135,12 @@ export default function CreatePage() {
 		>
 			<div className="container mx-auto px-4 py-8 flex-grow flex flex-col items-center justify-center max-w-lg">
 				<motion.div variants={fadeIn} className="w-full">
-					<Link
-						href="/"
+					<button
+						onClick={goBack}
 						className="inline-flex items-center text-primary dark:text-primary-light mb-8 hover:underline"
 					>
 						<FaArrowLeft className="mr-2" /> Back to Home
-					</Link>
+					</button>
 				</motion.div>
 
 				<motion.div
