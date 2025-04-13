@@ -14,9 +14,10 @@ type QuestionState = {
 	addQuestion: (question: Question) => void;
 	upvoteQuestion: (questionId: string) => void;
 	downvoteQuestion: (questionId: string) => void;
+	getQuestionById: (questionId: string) => Question | undefined;
 };
 
-export const useQuestionStore = create<QuestionState>((set) => ({
+export const useQuestionStore = create<QuestionState>((set, get) => ({
 	questions: [],
 	isLoading: false,
 	activeTab: "all",
@@ -77,4 +78,10 @@ export const useQuestionStore = create<QuestionState>((set) => ({
 			),
 		}));
 	},
+
+	getQuestionById: (questionId)  => {
+		const state = get();
+		return state.questions.find((q)=>q.id===questionId);
+	}
+
 }));
