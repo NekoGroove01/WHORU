@@ -1,5 +1,5 @@
 import QuestionDetail from "@/components/group/QuestionDetail";
-
+import AnswerInput from "@/components/group/AnswerInput";
 
 
 type CurrentQuestion = {
@@ -14,6 +14,10 @@ export default async function QuestionPage({ params }: CurrentQuestion){
     const {groupId, questionId} = await params;
 
     return(
-        <QuestionDetail groupId={groupId} questionId={questionId}/>
+        <div className="space-y-4">
+            <QuestionDetail groupId={groupId} questionId={questionId}/>
+            <AnswerInput/>
+        </div>
+
     );
 }
