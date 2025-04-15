@@ -24,12 +24,13 @@ export default function RootLayout({
 			<body className={`${pretendard.className}`} suppressHydrationWarning>
 				<ThemeProvider>
 					{children}
-					{/* Footer */}
-					<Footer />
 					{/* Theme Toggle - Fixed position */}
 					<div className="fixed bottom-5 right-5">
 						<ThemeToggle />
 					</div>
+
+					{/* Footer */}
+					<Footer />
 				</ThemeProvider>
 			</body>
 		</html>

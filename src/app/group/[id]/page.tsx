@@ -15,7 +15,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 
 export default function GroupPage() {
 	const params = useParams();
-	const groupId = (params?.id as string) || "";
+	const groupId = (params?.id as string) ?? "";
 	const [isLoading, setIsLoading] = useState(true);
 
 	// Get state from stores
@@ -71,13 +71,13 @@ export default function GroupPage() {
 		>
 			<GroupHeader group={group} />
 
-			<div className="container mx-auto px-4 mt-6">
-				<div className="flex flex-col lg:flex-row-reverse gap-6">
+			<div className="container mx-auto px-4 mt-4">
+				<div className="flex flex-col lg:flex-row-reverse gap-4">
 					{/* Sidebar - 30% on desktop */}
 					<div className="w-full lg:w-[30%]">
 						<AskQuestionForm groupId={groupId} />
 
-						<div className="mt-6 hidden lg:block">
+						<div className="mt-4 hidden lg:block">
 							<TagFilter
 								tags={group.tags}
 								selectedTags={selectedTags}

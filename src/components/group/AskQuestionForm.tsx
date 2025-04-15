@@ -100,18 +100,19 @@ export default function AskQuestionForm({
 
 			<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 				<div>
-					<p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+					<label
+						htmlFor="title"
+						className="text-sm text-gray-700 dark:text-gray-300 mb-2"
+					>
 						Title:
-					</p>
+					</label>
 					<input
 						type="text"
+						id="title"
+						{...register("title")}
 						placeholder="Title of your question..."
 						{...register("title")}
-						className={`w-full p-1.5 rounded-md border-2 focus:outline-none focus:ring-0 ${
-							errors.title
-								? "!border-red-500"
-								: "border-gray-300 dark:border-gray-600"
-						}`}
+						className={`input-modern ${errors.title ? "input-error" : ""}`}
 					/>
 					{errors.title && (
 						<p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
@@ -119,20 +120,22 @@ export default function AskQuestionForm({
 				</div>
 
 				<div>
-					<p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+					<label
+						htmlFor="question"
+						className="text-sm text-gray-700 dark:text-gray-300 mb-2"
+					>
 						Question:
-					</p>
+					</label>
 				</div>
 				<div>
 					<TextareaAutosize
+						id="question"
+						{...register("content")}
 						placeholder="Describe your question in detail..."
 						{...register("content")}
 						minRows={3}
-						className={`w-full border-2 p-1.5 rounded-md resize-none focus:outline-none focus:ring-0 ${
-							errors.content
-								? "!border-red-500"
-								: "border-gray-300 dark:border-gray-600"
-						}`}
+						maxRows={15}
+						className={`textarea-modern ${errors.content ? "input-error" : ""}`}
 					/>
 					{errors.content && (
 						<p className="mt-1 text-sm text-red-500">
