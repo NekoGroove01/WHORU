@@ -107,7 +107,7 @@ export default function LoadingUI({
 	// Container classes based on fullscreen mode
 	const containerClasses = fullscreen
 		? "fixed inset-0 flex items-center justify-center z-50"
-		: "flex items-center justify-center";
+		: "flex items-center justify-center w-full h-full";
 
 	// Overlay classes if enabled
 	const overlayClasses =

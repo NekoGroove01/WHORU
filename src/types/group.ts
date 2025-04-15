@@ -7,6 +7,7 @@ export type Group = {
 	questionCount: number;
 	tags: string[];
 	isActive: boolean;
+	isPublic?: boolean;
 	lastActivity?: string; // ISO date string
 	createdAt?: string; // ISO date string
 };
