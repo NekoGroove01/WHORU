@@ -96,6 +96,122 @@ p {
 	@apply bg-gradient-to-r from-[var(--color-gradient-from)] to-[var(--color-gradient-to)];
 }
 
+/* 
+--- Input And Textarea Styles ---
+*/
+
+/* Base input styles */
+.input-modern {
+	@apply w-full px-4 py-3 bg-white dark:bg-gray-800 border-0 border-b-2 border-gray-300 
+	dark:border-gray-600 focus:border-primary dark:focus:border-primary-light focus:ring-0
+	text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+	transition-all duration-200 rounded-t-lg;
+}
+
+.input-modern:focus {
+	@apply bg-gray-50 dark:bg-gray-700/50 outline-none;
+}
+
+/* Input label */
+.input-label {
+	@apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 transition-all duration-200;
+}
+
+/* Input group with floating label */
+.input-group {
+	@apply relative;
+}
+
+.input-group .input-modern {
+	@apply pt-6 pb-2;
+}
+
+.input-group .input-label {
+	@apply absolute left-4 top-4 text-gray-500 dark:text-gray-400 transform origin-left 
+	transition-all duration-200 pointer-events-none;
+}
+
+.input-group .input-modern:focus + .input-label,
+.input-group .input-modern:not(:placeholder-shown) + .input-label {
+	@apply transform -translate-y-3 scale-75 text-primary dark:text-primary-light;
+}
+
+/* Textarea modern */
+.textarea-modern {
+	@apply w-full h-auto px-4 py-3 bg-white dark:bg-gray-800 border-0 border-b-2 border-gray-300 
+	dark:border-gray-600 focus:border-primary dark:focus:border-primary-light focus:ring-0 
+	text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+	transition-all duration-200 rounded-t-lg resize-none;
+}
+
+.textarea-modern:focus {
+	@apply bg-gray-50 dark:bg-gray-700/50 outline-none;
+}
+
+/* Checkbox modern */
+.checkbox-modern {
+	@apply rounded text-primary focus:ring-primary focus:ring-offset-1 dark:focus:ring-offset-gray-800
+	border-gray-300 dark:border-gray-600 transition-all duration-200
+	h-5 w-5;
+}
+
+/* Toggle switch */
+.toggle-switch {
+	@apply relative inline-flex items-center cursor-pointer;
+}
+
+.toggle-switch input {
+	@apply sr-only;
+}
+
+.toggle-slider {
+	@apply w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full 
+	after:content-[''] after:absolute after:left-[2px] after:top-[2px] 
+	after:bg-white after:h-5 after:w-5 after:rounded-full after:transition-all;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+	@apply bg-primary;
+}
+
+.toggle-switch input:checked + .toggle-slider:after {
+	@apply translate-x-5;
+}
+
+.toggle-switch input:focus + .toggle-slider {
+	@apply ring-2 ring-primary-light ring-offset-2 dark:ring-offset-gray-800;
+}
+
+/* Select modern */
+.select-modern {
+	@apply w-full px-4 py-3 bg-white dark:bg-gray-800 border-0 border-b-2 border-gray-300 
+	dark:border-gray-600 focus:border-primary dark:focus:border-primary-light focus:ring-0 
+	text-gray-900 dark:text-white 
+	transition-all duration-200 rounded-t-lg appearance-none;
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+	background-position: right 0.5rem center;
+	background-repeat: no-repeat;
+	background-size: 1.5em 1.5em;
+	padding-right: 2.5rem;
+}
+
+.select-modern:focus {
+	@apply bg-gray-50 dark:bg-gray-700/50;
+}
+
+/* Error states */
+.input-error {
+	@apply !border-red-500 dark:!border-red-400;
+}
+
+.error-message {
+	@apply mt-1.5 text-sm !text-red-500 dark:!text-red-400;
+}
+
+/*
+--- Input And Textarea Styles ---
+*/
+
 /* Button styles */
 .btn-primary {
 	@apply px-6 py-3 rounded-lg bg-gradient-primary text-white font-medium text-lg 
@@ -106,15 +222,6 @@ p {
 	@apply px-6 py-3 rounded-lg border-2 border-primary-light text-primary
          font-medium text-lg transition-all hover:bg-blue-50 dark:hover:bg-gray-800
          dark:border-primary-light dark:text-primary-light;
-}
-
-/* Form styles */
-input,
-textarea,
-select {
-	@apply block w-full rounded-md border-gray-300 dark:border-gray-700 
-         dark:bg-gray-800 focus:border-primary focus:ring focus:ring-primary 
-        transition-colors;
 }
 
 /* Utility classes */
