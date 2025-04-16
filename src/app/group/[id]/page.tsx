@@ -54,7 +54,7 @@ export default function GroupPage() {
 
 	// Return loading state
 	if (isLoading) {
-		return <LoadingScreen />;
+		return <LoadingScreen size="lg" text="Loading..." />;
 	}
 
 	// Return not found state

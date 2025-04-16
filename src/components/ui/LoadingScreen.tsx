@@ -40,8 +40,8 @@ export default function LoadingScreen({
 				animate={{ opacity: 1 }}
 				className="flex flex-col items-center"
 			>
-				<div className="relative w-16 h-16 mb-8">
-					<LoadingUI 
+				<div className="relative mb-8">
+					<LoadingUI
 						variant={variant}
 						size={size}
 						color={color}

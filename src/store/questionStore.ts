@@ -5,19 +5,22 @@ type Tab = "all" | "popular" | "recent" | "mine" | "unanswered";
 
 type QuestionState = {
 	questions: Question[];
+	question: Question | null;
 	isLoading: boolean;
 	activeTab: Tab;
 	selectedTags: string[];
 	setActiveTab: (tab: Tab) => void;
 	setSelectedTags: (tags: string[]) => void;
 	fetchQuestions: (groupId: string) => Promise<void>;
+	fetchQuestionById: (questionId: string) => Promise<void>;
 	addQuestion: (question: Question) => void;
 	upvoteQuestion: (questionId: string) => void;
 	downvoteQuestion: (questionId: string) => void;
 };
 
-export const useQuestionStore = create<QuestionState>((set) => ({
+export const useQuestionStore = create<QuestionState>((set, get) => ({
 	questions: [],
+	question: null,
 	isLoading: false,
 	activeTab: "all",
 	selectedTags: [],
@@ -52,6 +55,42 @@ export const useQuestionStore = create<QuestionState>((set) => ({
 			set({ questions: mockQuestions, isLoading: false });
 		} catch (error) {
 			console.error("Failed to fetch questions:", error);
+			set({ isLoading: false });
+		}
+	},
+
+	fetchQuestionById: async (questionId: string) => {
+		set({ isLoading: true });
+		try {
+			// Simulate API call
+			await new Promise((resolve) => setTimeout(resolve, 800));
+
+			// Mock question data
+			const mockQuestion: Question = {
+				id: questionId,
+				groupId: "group-id",
+				title: "How do we improve the user onboarding experience?",
+				content:
+					"Our analytics show that many users drop off during the onboarding process. I've noticed that our current onboarding flow has too many steps and might be confusing. What are some ways we could simplify this process while still collecting necessary information? Has anyone experimented with progressive onboarding techniques?",
+				authorId: "user-123",
+				authorName: "Anonymous Raccoon",
+				tags: ["UX", "Onboarding", "Conversion"],
+				upvotes: 24,
+				downvotes: 2,
+				answerCount: 5,
+				isAnswered: true,
+				createdAt: "2023-11-15T10:30:00Z",
+			};
+
+			set({
+				question: mockQuestion,
+				questions: get().questions.some((q) => q.id === questionId)
+					? get().questions
+					: [...get().questions, mockQuestion],
+				isLoading: false,
+			});
+		} catch (error) {
+			console.error("Failed to fetch question:", error);
 			set({ isLoading: false });
 		}
 	},

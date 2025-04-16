@@ -80,7 +80,7 @@ export default function QuestionCard({
 
 				{/* Question content */}
 				<div className="flex-1">
-					<Link href={`/group/${question.groupId}/question/${question.id}`}>
+					<Link href={`/group/${question.groupId}/${question.id}`}>
 						<h3 className="text-lg font-medium text-gray-900 dark:text-white hover:text-primary dark:hover:text-primary-light mb-2">
 							{question.title}
 						</h3>

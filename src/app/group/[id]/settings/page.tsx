@@ -26,11 +26,16 @@ import QRCodeGenerator from "@/components/group/settings/QRCodeGenerator";
 import TagManager from "@/components/group/settings/TagManager";
 import { Group } from "@/types/group";
 import TextareaAutosize from "react-textarea-autosize";
+import LoadingScreen from "@/components/ui/LoadingScreen";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 export default function GroupSettingsPage() {
 	const params = useParams();
 	const router = useRouter();
 	const groupId: string = (params?.id as string) ?? "";
+
+	// navigation for going previous page
+	const { goBack } = useBackNavigation("/");
 
 	const [isLoading, setIsLoading] = useState(true);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -164,7 +169,7 @@ export default function GroupSettingsPage() {
 	};
 
 	if (isLoading) {
-		return <LoadingUI fullscreen text="Loading settings..." />;
+		return <LoadingScreen text="Loading settings..." />;
 	}
 
 	if (!group) {
@@ -187,12 +192,12 @@ export default function GroupSettingsPage() {
 				<div className="container mx-auto px-4 py-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center">
-							<Link
-								href={`/group/${groupId}`}
+							<button
+								onClick={goBack}
 								className="text-primary dark:text-primary-light flex items-center hover:underline"
 							>
 								<FaArrowLeft className="mr-2" /> Back to Group
-							</Link>
+							</button>
 						</div>
 
 						<motion.button
@@ -207,7 +212,7 @@ export default function GroupSettingsPage() {
 			</div>
 
 			<div className="container mx-auto px-4 py-6">
-				<h1 className="my-4 !text-3xl md:!text-4xl font-bold">
+				<h1 className="mb-4 !text-3xl md:!text-4xl font-bold">
 					Group Settings
 				</h1>
 

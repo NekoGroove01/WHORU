@@ -209,7 +209,7 @@ export default function LoadingUI({
 					</p>
 				)}
 
-				<span className="sr-only">Loading...</span>
+				<span className={`sr-only`}>Loading...</span>
 			</div>
 		</output>
 	);
