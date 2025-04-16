@@ -92,7 +92,7 @@ export default function AskQuestionForm({
 		<motion.div
 			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
-			className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-100 dark:border-gray-700"
+			className="mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-100 dark:border-gray-700"
 		>
 			<h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
 				Ask a Question

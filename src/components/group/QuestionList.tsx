@@ -50,7 +50,7 @@ export default function QuestionList({
 			<motion.div
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
-				className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mt-4 text-center"
+				className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mt-6 text-center"
 			>
 				<p className="text-gray-500 dark:text-gray-400">
 					No questions found. Be the first to ask something!

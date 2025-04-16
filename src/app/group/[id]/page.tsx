@@ -72,7 +72,7 @@ export default function GroupPage() {
 			<GroupHeader group={group} />
 
 			<div className="container mx-auto px-4 mt-4">
-				<div className="flex flex-col lg:flex-row-reverse gap-4">
+				<div className="flex flex-col lg:flex-row-reverse gap-6">
 					{/* Sidebar - 30% on desktop */}
 					<div className="w-full lg:w-[30%]">
 						<AskQuestionForm groupId={groupId} />

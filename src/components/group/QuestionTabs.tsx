@@ -24,7 +24,7 @@ export default function QuestionTabs({
 	];
 
 	return (
-		<div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+		<div className="mt-2 bg-white border order-gray-100 dark:border-gray-700 dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
 			<div className="flex">
 				{tabs.map((tab) => (
 					<button
