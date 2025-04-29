@@ -75,14 +75,16 @@ export default function GroupPage() {
 				<div className="flex flex-col lg:flex-row-reverse gap-6">
 					{/* Sidebar - 30% on desktop */}
 					<div className="w-full lg:w-[30%]">
-						<AskQuestionForm groupId={groupId} />
+						<div className="lg:sticky lg:top-4 lg:z-10">
+							<AskQuestionForm groupId={groupId} />
 
-						<div className="mt-4 hidden lg:block">
-							<TagFilter
-								tags={group.tags}
-								selectedTags={selectedTags}
-								setSelectedTags={setSelectedTags}
-							/>
+							<div className="mt-4 hidden lg:block">
+								<TagFilter
+									tags={group.tags}
+									selectedTags={selectedTags}
+									setSelectedTags={setSelectedTags}
+								/>
+							</div>
 						</div>
 					</div>
 					{/* Main content - 70% on desktop */}

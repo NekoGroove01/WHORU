@@ -97,7 +97,7 @@ export default function QuestionPage() {
 						transition={{ duration: 0.3 }}
 					>
 						{/* Question Header */}
-						<QuestionHeader question={question} groupId={groupId} />
+						<QuestionHeader question={question} />
 
 						{/* Question Content */}
 						<QuestionContent question={question} />

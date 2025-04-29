@@ -21,7 +21,6 @@ import {
 import { useGroupStore } from "@/store/groupStore";
 import SettingsSection from "@/components/group/settings/SettingsSection";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import LoadingUI from "@/components/ui/LoadingUI";
 import QRCodeGenerator from "@/components/group/settings/QRCodeGenerator";
 import TagManager from "@/components/group/settings/TagManager";
 import { Group } from "@/types/group";
@@ -480,8 +479,8 @@ export default function GroupSettingsPage() {
 						<SettingsSection title="Settings Help" icon={<FaQuestionCircle />}>
 							<div className="text-sm text-gray-600 dark:text-gray-300 space-y-3">
 								<div>
-									<h4 className="font-medium">Basic Information</h4>
-									<p>
+									<h4 className="text-md font-medium">Basic Information</h4>
+									<p className="text-sm text-gray-500 dark:text-gray-400">
 										Change your group name and description to help users
 										understand the purpose.
 									</p>

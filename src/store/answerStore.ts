@@ -1,3 +1,4 @@
+// answerStore.ts
 import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { Answer } from "@/types/answer";
@@ -8,12 +9,15 @@ type AnswerState = {
 	error: string | null;
 	fetchAnswers: (questionId: string) => Promise<void>;
 	addAnswer: (answer: Omit<Answer, "id" | "createdAt">) => Promise<void>;
-	upvoteAnswer: (answerId: string) => void;
-	downvoteAnswer: (answerId: string) => void;
+	upvoteAnswer: (answerId: string, previousVote: "up" | "down" | null) => void;
+	downvoteAnswer: (
+		answerId: string,
+		previousVote: "up" | "down" | null
+	) => void;
 	acceptAnswer: (answerId: string) => void;
 };
 
-export const useAnswerStore = create<AnswerState>((set, get) => ({
+export const useAnswerStore = create<AnswerState>((set) => ({
 	answers: [],
 	isLoading: false,
 	error: null,
@@ -26,7 +30,7 @@ export const useAnswerStore = create<AnswerState>((set, get) => ({
 
 			// Mock data
 			const mockAnswers: Answer[] = Array.from({ length: 5 }, (_, i) => ({
-				id: `answer-${i}`,
+				id: `${nanoid(10)}-${i}`,
 				questionId,
 				content: `This is a sample answer ${
 					i + 1
@@ -69,23 +73,43 @@ export const useAnswerStore = create<AnswerState>((set, get) => ({
 		}
 	},
 
-	upvoteAnswer: (answerId) => {
+	upvoteAnswer: (answerId, previousVote) => {
 		set((state) => ({
-			answers: state.answers.map((answer) =>
-				answer.id === answerId
-					? { ...answer, upvotes: answer.upvotes + 1 }
-					: answer
-			),
+			answers: state.answers.map((answer) => {
+				if (answer.id !== answerId) return answer;
+
+				const updatedAnswer = { ...answer };
+
+				// Cancel previous vote if exists
+				if (previousVote === "down") {
+					updatedAnswer.downvotes = Math.max(0, updatedAnswer.downvotes - 1);
+				}
+
+				// Add new upvote
+				updatedAnswer.upvotes += 1;
+
+				return updatedAnswer;
+			}),
 		}));
 	},
 
-	downvoteAnswer: (answerId) => {
+	downvoteAnswer: (answerId, previousVote) => {
 		set((state) => ({
-			answers: state.answers.map((answer) =>
-				answer.id === answerId
-					? { ...answer, downvotes: answer.downvotes + 1 }
-					: answer
-			),
+			answers: state.answers.map((answer) => {
+				if (answer.id !== answerId) return answer;
+
+				const updatedAnswer = { ...answer };
+
+				// Cancel previous vote if exists
+				if (previousVote === "up") {
+					updatedAnswer.upvotes = Math.max(0, updatedAnswer.upvotes - 1);
+				}
+
+				// Add new downvote
+				updatedAnswer.downvotes += 1;
+
+				return updatedAnswer;
+			}),
 		}));
 	},
 

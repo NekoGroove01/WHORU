@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { FaChevronUp, FaChevronDown, FaClock, FaCheck } from "react-icons/fa";
 import { Answer } from "@/types/answer";
 import { useAnswerStore } from "@/store/answerStore";
@@ -23,9 +23,9 @@ export default function AnswerItem({
 		if (hasVoted === voteType) return;
 
 		if (voteType === "up") {
-			upvoteAnswer(answer.id);
+			upvoteAnswer(answer.id, hasVoted);
 		} else {
-			downvoteAnswer(answer.id);
+			downvoteAnswer(answer.id, hasVoted);
 		}
 
 		setHasVoted(voteType);
@@ -38,20 +38,38 @@ export default function AnswerItem({
 	};
 
 	return (
-		<div
-			className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border ${
+		<motion.div
+			layout
+			layoutId={answer.id}
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: -20 }}
+			transition={{
+				type: "spring",
+				stiffness: 300,
+				damping: 30,
+				opacity: { duration: 0.2 },
+			}}
+			className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border mb-4 ${
 				answer.isAccepted
 					? "border-green-200 dark:border-green-800"
 					: "border-gray-200 dark:border-gray-700"
 			}`}
 		>
 			{/* Accepted banner */}
-			{answer.isAccepted && (
-				<div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-4 py-2 rounded-t-lg flex items-center">
-					<FaCheck className="mr-2" />
-					<span className="font-medium">Accepted Answer</span>
-				</div>
-			)}
+			<AnimatePresence>
+				{answer.isAccepted && (
+					<motion.div
+						initial={{ opacity: 0, height: 0 }}
+						animate={{ opacity: 1, height: "auto" }}
+						exit={{ opacity: 0, height: 0 }}
+						className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-4 py-2 rounded-t-lg flex items-center"
+					>
+						<FaCheck className="mr-2" />
+						<span className="font-medium">Accepted Answer</span>
+					</motion.div>
+				)}
+			</AnimatePresence>
 
 			<div className="p-5">
 				<div className="flex">
@@ -70,9 +88,15 @@ export default function AnswerItem({
 							<FaChevronUp />
 						</motion.button>
 
-						<span className="text-lg font-semibold my-1">
+						<motion.span
+							className="text-lg font-semibold my-1"
+							key={`vote-${answer.upvotes - answer.downvotes}`}
+							initial={{ scale: 1.25 }}
+							animate={{ scale: 1 }}
+							transition={{ type: "spring", stiffness: 400, damping: 10 }}
+						>
 							{answer.upvotes - answer.downvotes}
-						</span>
+						</motion.span>
 
 						<motion.button
 							whileTap={{ scale: 0.95 }}
@@ -88,13 +112,15 @@ export default function AnswerItem({
 						</motion.button>
 
 						{isQuestionAuthor && !answer.isAccepted && (
-							<button
+							<motion.button
+								whileHover={{ scale: 1.1 }}
+								whileTap={{ scale: 0.95 }}
 								onClick={handleAccept}
 								className="mt-2 text-gray-400 hover:text-green-500 dark:text-gray-500 dark:hover:text-green-400"
 								title="Accept this answer"
 							>
 								<FaCheck className="w-5 h-5" />
-							</button>
+							</motion.button>
 						)}
 					</div>
 
@@ -119,6 +145,6 @@ export default function AnswerItem({
 					</div>
 				</div>
 			</div>
-		</div>
+		</motion.div>
 	);
 }

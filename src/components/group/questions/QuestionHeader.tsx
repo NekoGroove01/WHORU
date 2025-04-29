@@ -17,7 +17,6 @@ import { formatDistanceToNow } from "@/utils/dateUtils";
 
 type QuestionHeaderProps = {
 	question: Question;
-	groupId: string;
 };
 
 export default function QuestionHeader({
@@ -31,9 +30,9 @@ export default function QuestionHeader({
 		if (hasVoted === voteType) return;
 
 		if (voteType === "up") {
-			upvoteQuestion(question.id);
+			upvoteQuestion(question.id, hasVoted);
 		} else {
-			downvoteQuestion(question.id);
+			downvoteQuestion(question.id, hasVoted);
 		}
 
 		setHasVoted(voteType);
@@ -54,7 +53,7 @@ export default function QuestionHeader({
 					{/* Vote buttons */}
 					<div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1">
 						<motion.button
-							whileTap={{ scale: 0.95 }}
+							whileTap={{ scale: 0.85 }}
 							onClick={() => handleVote("up")}
 							className={`p-2 rounded-full ${
 								hasVoted === "up"
@@ -66,12 +65,18 @@ export default function QuestionHeader({
 							<FaChevronUp />
 						</motion.button>
 
-						<span className="px-2 font-medium">
+						<motion.span
+							className="px-2 font-medium"
+							key={`vote-${question.upvotes - question.downvotes}`}
+							initial={{ scale: 1.15 }}
+							animate={{ scale: 1 }}
+							transition={{ type: "spring", stiffness: 400, damping: 10 }}
+						>
 							{question.upvotes - question.downvotes}
-						</span>
+						</motion.span>
 
 						<motion.button
-							whileTap={{ scale: 0.95 }}
+							whileTap={{ scale: 0.85 }}
 							onClick={() => handleVote("down")}
 							className={`p-2 rounded-full ${
 								hasVoted === "down"

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { gmarketSans, pretendard } from "@/app/fonts";
+import { pretendard } from "@/app/fonts";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -16,11 +16,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html
-			lang="ko"
-			className={`${gmarketSans.variable} ${pretendard.variable}`}
-			suppressHydrationWarning
-		>
+		<html lang="ko" suppressHydrationWarning>
 			<body className={`${pretendard.className}`} suppressHydrationWarning>
 				<ThemeProvider>
 					{children}

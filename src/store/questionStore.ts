@@ -14,8 +14,14 @@ type QuestionState = {
 	fetchQuestions: (groupId: string) => Promise<void>;
 	fetchQuestionById: (questionId: string) => Promise<void>;
 	addQuestion: (question: Question) => void;
-	upvoteQuestion: (questionId: string) => void;
-	downvoteQuestion: (questionId: string) => void;
+	upvoteQuestion: (
+		questionId: string,
+		previousVote: "up" | "down" | null
+	) => void;
+	downvoteQuestion: (
+		questionId: string,
+		previousVote: "up" | "down" | null
+	) => void;
 };
 
 export const useQuestionStore = create<QuestionState>((set, get) => ({
@@ -101,19 +107,72 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 		}));
 	},
 
-	upvoteQuestion: (questionId) => {
+	upvoteQuestion: (questionId, previousVote) => {
 		set((state) => ({
-			questions: state.questions.map((q) =>
-				q.id === questionId ? { ...q, upvotes: q.upvotes + 1 } : q
-			),
+			questions: state.questions.map((q) => {
+				if (q.id !== questionId) return q;
+
+				// Found the question we want to update
+				const updatedQuestion = { ...q };
+
+				// Cancel previous vote if exists
+				if (previousVote === "down") {
+					updatedQuestion.downvotes = Math.max(
+						0,
+						updatedQuestion.downvotes - 1
+					);
+				}
+
+				// Add new upvote
+				updatedQuestion.upvotes += 1;
+
+				return updatedQuestion;
+			}),
+			// Also update the active question if it matches
+			question:
+				state.question?.id === questionId
+					? {
+							...state.question,
+							upvotes: state.question.upvotes + 1,
+							downvotes:
+								previousVote === "down"
+									? Math.max(0, state.question.downvotes - 1)
+									: state.question.downvotes,
+					  }
+					: state.question,
 		}));
 	},
 
-	downvoteQuestion: (questionId) => {
+	downvoteQuestion: (questionId, previousVote) => {
 		set((state) => ({
-			questions: state.questions.map((q) =>
-				q.id === questionId ? { ...q, downvotes: q.downvotes + 1 } : q
-			),
+			questions: state.questions.map((q) => {
+				if (q.id !== questionId) return q;
+
+				// Found the question we want to update
+				const updatedQuestion = { ...q };
+
+				// Cancel previous vote if exists
+				if (previousVote === "up") {
+					updatedQuestion.upvotes = Math.max(0, updatedQuestion.upvotes - 1);
+				}
+
+				// Add new downvote
+				updatedQuestion.downvotes += 1;
+
+				return updatedQuestion;
+			}),
+			// Also update the active question if it matches
+			question:
+				state.question?.id === questionId
+					? {
+							...state.question,
+							downvotes: state.question.downvotes + 1,
+							upvotes:
+								previousVote === "up"
+									? Math.max(0, state.question.upvotes - 1)
+									: state.question.upvotes,
+					  }
+					: state.question,
 		}));
 	},
 }));

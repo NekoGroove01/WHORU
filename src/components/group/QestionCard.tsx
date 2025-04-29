@@ -26,9 +26,9 @@ export default function QuestionCard({
 		if (hasVoted === voteType) return;
 
 		if (voteType === "up") {
-			upvoteQuestion(question.id);
+			upvoteQuestion(question.id, hasVoted);
 		} else {
-			downvoteQuestion(question.id);
+			downvoteQuestion(question.id, hasVoted);
 		}
 
 		setHasVoted(voteType);
