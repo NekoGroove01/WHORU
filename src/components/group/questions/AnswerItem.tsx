@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { FaChevronUp, FaChevronDown, FaClock, FaCheck } from "react-icons/fa";
 import { Answer } from "@/types/answer";
 import { useAnswerStore } from "@/store/answerStore";
@@ -22,6 +22,8 @@ export default function AnswerItem({
 	const handleVote = (voteType: "up" | "down") => {
 		if (hasVoted === voteType) return;
 
+		console.log("Vote type:", voteType, "Answer ID:", answer.id);
+
 		if (voteType === "up") {
 			upvoteAnswer(answer.id, hasVoted);
 		} else {
@@ -38,41 +40,23 @@ export default function AnswerItem({
 	};
 
 	return (
-		<motion.div
-			layout
-			layoutId={answer.id}
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			exit={{ opacity: 0, y: -20 }}
-			transition={{
-				type: "spring",
-				stiffness: 300,
-				damping: 30,
-				opacity: { duration: 0.2 },
-			}}
-			className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border mb-4 ${
+		<div
+			className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border ${
 				answer.isAccepted
 					? "border-green-200 dark:border-green-800"
 					: "border-gray-200 dark:border-gray-700"
 			}`}
 		>
 			{/* Accepted banner */}
-			<AnimatePresence>
-				{answer.isAccepted && (
-					<motion.div
-						initial={{ opacity: 0, height: 0 }}
-						animate={{ opacity: 1, height: "auto" }}
-						exit={{ opacity: 0, height: 0 }}
-						className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-4 py-2 rounded-t-lg flex items-center"
-					>
-						<FaCheck className="mr-2" />
-						<span className="font-medium">Accepted Answer</span>
-					</motion.div>
-				)}
-			</AnimatePresence>
+			{answer.isAccepted && (
+				<div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-4 py-2 rounded-t-lg flex items-center">
+					<FaCheck className="mr-2" />
+					<span className="font-medium">Accepted Answer</span>
+				</div>
+			)}
 
 			<div className="p-5">
-				<div className="flex">
+				<div className="flex items-center">
 					{/* Vote controls */}
 					<div className="flex flex-col items-center mr-4">
 						<motion.button
@@ -112,22 +96,20 @@ export default function AnswerItem({
 						</motion.button>
 
 						{isQuestionAuthor && !answer.isAccepted && (
-							<motion.button
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.95 }}
+							<button
 								onClick={handleAccept}
 								className="mt-2 text-gray-400 hover:text-green-500 dark:text-gray-500 dark:hover:text-green-400"
 								title="Accept this answer"
 							>
 								<FaCheck className="w-5 h-5" />
-							</motion.button>
+							</button>
 						)}
 					</div>
 
 					{/* Answer content */}
 					<div className="flex-1">
 						<div className="prose dark:prose-invert prose-blue max-w-none">
-							<p className="whitespace-pre-line">{answer.content}</p>
+							<p className="whitespace-pre-line h-full">{answer.content}</p>
 						</div>
 
 						<div className="mt-4 flex justify-between items-center text-sm">
@@ -145,6 +127,6 @@ export default function AnswerItem({
 					</div>
 				</div>
 			</div>
-		</motion.div>
+		</div>
 	);
 }

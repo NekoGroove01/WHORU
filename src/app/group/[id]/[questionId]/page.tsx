@@ -32,6 +32,9 @@ export default function QuestionPage() {
 	const { fetchQuestionById, question } = useQuestionStore();
 	const { fetchAnswers, answers } = useAnswerStore();
 
+	 // Add this to prevent re-animating after initial load
+	 const [pageAnimationComplete, setPageAnimationComplete] = useState(false);
+
 	// First effect - fetch initial data
 	useEffect(() => {
 		const loadData = async () => {
@@ -92,9 +95,10 @@ export default function QuestionPage() {
 			<div className="container mx-auto px-4 py-6">
 				<div className="max-w-4xl mx-auto">
 					<motion.div
-						initial={{ opacity: 0, y: 20 }}
+						initial={!pageAnimationComplete ? { opacity: 0, y: 20 } : false}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.3 }}
+						onAnimationComplete={() => setPageAnimationComplete(true)}
 					>
 						{/* Question Header */}
 						<QuestionHeader question={question} />

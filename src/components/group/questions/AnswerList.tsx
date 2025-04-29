@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Answer } from "@/types/answer";
 import AnswerItem from "./AnswerItem";
@@ -12,30 +12,36 @@ type AnswerListProps = {
 
 type SortOption = "newest" | "votes" | "oldest";
 
-export default function AnswerList({
-	answers,
-	questionAuthorId,
-}: Readonly<AnswerListProps>) {
+function AnswerList({ answers, questionAuthorId }: Readonly<AnswerListProps>) {
 	const [sortBy, setSortBy] = useState<SortOption>("votes");
+	const [sortedAnswers, setSortedAnswers] = useState<Answer[]>(answers);
+	// Add this to track initial mount
+	const initialRenderComplete = useRef(false);
 
-	const sortedAnswers = [...answers].sort((a, b) => {
-		if (a.isAccepted && !b.isAccepted) return -1;
-		if (!a.isAccepted && b.isAccepted) return 1;
+	useEffect(() => {
+		// Set flag after initial render
+		initialRenderComplete.current = true;
+		const newSortedAnswers = [...answers].sort((a, b) => {
+			if (a.isAccepted && !b.isAccepted) return -1;
+			if (!a.isAccepted && b.isAccepted) return 1;
 
-		switch (sortBy) {
-			case "newest":
-				return (
-					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-				);
-			case "oldest":
-				return (
-					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-				);
-			case "votes":
-			default:
-				return b.upvotes - b.downvotes - (a.upvotes - a.downvotes);
-		}
-	});
+			switch (sortBy) {
+				case "newest":
+					return (
+						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+					);
+				case "oldest":
+					return (
+						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+					);
+				case "votes":
+				default:
+					return b.upvotes - b.downvotes - (a.upvotes - a.downvotes);
+			}
+		});
+
+		setSortedAnswers(newSortedAnswers);
+	}, [answers, sortBy]);
 
 	if (answers.length === 0) {
 		return (
@@ -75,14 +81,24 @@ export default function AnswerList({
 			</div>
 
 			<div className="space-y-6">
-				<AnimatePresence initial={false}>
+				<AnimatePresence mode="popLayout" initial={false}>
 					{sortedAnswers.map((answer) => (
 						<motion.div
 							key={answer.id}
-							initial={{ opacity: 0, y: 20 }}
+							layoutId={`${answer.id}`}
+							layout={sortBy === "votes"}
+							// Only apply initial animation on first render
+							initial={
+								initialRenderComplete.current ? false : { opacity: 0, y: 20 }
+							}
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-							transition={{ duration: 0.3 }}
+							transition={{
+								type: "spring",
+								stiffness: 300,
+								damping: 30,
+								duration: 0.3,
+							}}
 						>
 							<AnswerItem
 								answer={answer}
@@ -95,3 +111,5 @@ export default function AnswerList({
 		</div>
 	);
 }
+
+export default memo(AnswerList);
