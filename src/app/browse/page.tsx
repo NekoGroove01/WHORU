@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -68,6 +68,9 @@ export default function BrowsePage() {
 	const [allTags, setAllTags] = useState<string[]>([]);
 	const [showFilters, setShowFilters] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+
+	// For track initial mount
+	const initialRenderComplete = useRef(false);
 
 	// Router for going previous page
 	const { goBack } = useBackNavigation("/");
@@ -150,6 +153,11 @@ export default function BrowsePage() {
 
 	// Simulate API call with an actual delay
 	useEffect(() => {
+		// Set initial render complete to true
+		if (!initialRenderComplete.current) {
+			initialRenderComplete.current = true;
+		}
+
 		setGroups(dummyGroups);
 		setFilteredGroups(dummyGroups);
 
@@ -394,7 +402,24 @@ export default function BrowsePage() {
 						className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
 					>
 						{filteredGroups.map((group) => (
-							<GroupCard key={group.id} group={group} />
+							<motion.div
+								key={group.id}
+								layoutId={group.id}
+								// Only apply initial animation on first render
+								initial={
+									initialRenderComplete.current ? false : { opacity: 0, y: 20 }
+								}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+								transition={{
+									type: "spring",
+									stiffness: 300,
+									damping: 30,
+									duration: 0.3,
+								}}
+							>
+								<GroupCard key={group.id} group={group} />
+							</motion.div>
 						))}
 					</motion.div>
 				) : (
