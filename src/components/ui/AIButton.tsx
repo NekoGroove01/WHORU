@@ -8,7 +8,7 @@ type AIButtonProps = {
 	toggleAi: () => void;
 };
 
-export default function AIButton({
+export default function AiButton({
 	isAiActive,
 	isStreaming,
 	toggleAi,
