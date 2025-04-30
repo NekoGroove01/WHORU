@@ -32,8 +32,8 @@ export default function QuestionPage() {
 	const { fetchQuestionById, question } = useQuestionStore();
 	const { fetchAnswers, answers } = useAnswerStore();
 
-	 // Add this to prevent re-animating after initial load
-	 const [pageAnimationComplete, setPageAnimationComplete] = useState(false);
+	// Add this to prevent re-animating after initial load
+	const [pageAnimationComplete, setPageAnimationComplete] = useState(false);
 
 	// First effect - fetch initial data
 	useEffect(() => {
@@ -121,7 +121,6 @@ export default function QuestionPage() {
 
 						{/* Add Answer Form */}
 						<div className="mt-10">
-							<h3 className="text-lg font-medium mb-4">Your Answer</h3>
 							<AddAnswerForm questionId={questionId} />
 						</div>
 					</motion.div>
