@@ -6,11 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FaPaperPlane } from "react-icons/fa";
-import { RiSparklingFill } from "react-icons/ri";
 import TextareaAutosize from "react-textarea-autosize";
 import { nanoid } from "nanoid";
 import { useQuestionStore } from "@/store/questionStore";
 import { useGroupStore } from "@/store/groupStore";
+import AIButton from "../ui/AIButton";
 
 type AskQuestionFormProps = {
 	groupId: string;
@@ -155,6 +155,7 @@ export default function AskQuestionForm({
 							className={`input-modern w-full relative z-10 ${
 								errors.title ? "input-error" : ""
 							} ${isAiActive || isStreaming ? "ai-input-active" : ""}`}
+							onBlur={() => setIsAiActive(false)}
 						/>
 
 						{(isAiActive || isStreaming) && (
@@ -192,99 +193,11 @@ export default function AskQuestionForm({
 						>
 							Question:
 						</label>
-						<motion.button
-							type="button"
-							onClick={toggleAi}
-							disabled={isStreaming}
-							whileTap={{ scale: 0.95 }}
-							className={`p-2 rounded-full transition-all duration-300 overflow-hidden relative`}
-							initial={false}
-							animate={isAiActive || isStreaming ? "active" : "inactive"}
-							variants={{
-								inactive: {
-									background: "rgb(243, 244, 246)",
-									boxShadow: "0 0 0 rgba(59, 130, 246, 0)",
-								},
-								active: {
-									background:
-										"linear-gradient(135deg, rgb(59, 130, 246), rgb(139, 92, 246), rgb(236, 72, 153))",
-									boxShadow: "0 0 15px rgba(59, 130, 246, 0.5)",
-									backgroundSize: "300% 300%",
-									transition: {
-										backgroundPosition: {
-											repeat: Infinity,
-											duration: 3,
-											ease: "linear",
-											from: "0% 0%",
-											to: "100% 100%",
-										},
-									},
-								},
-							}}
-						>
-							<motion.div
-								variants={{
-									inactive: {
-										rotate: 0,
-										opacity: 0.7,
-										scale: 1,
-									},
-									active: {
-										rotate: [0, 15, -15, 0],
-										opacity: 1,
-										scale: [1, 1.2, 1],
-										transition: {
-											rotate: {
-												repeat: Infinity,
-												repeatType: "reverse",
-												duration: 1.5,
-											},
-											scale: {
-												repeat: Infinity,
-												repeatType: "reverse",
-												duration: 1,
-											},
-										},
-									},
-								}}
-								animate={isStreaming ? "active" : "inactive"}
-							>
-								<RiSparklingFill
-									className={`text-lg ${
-										isAiActive || isStreaming
-											? "text-white"
-											: "text-gray-500 dark:text-gray-300"
-									}`}
-								/>
-							</motion.div>
-
-							{(isAiActive || isStreaming) && (
-								<motion.div
-									className="absolute inset-0 z-0 rounded-md"
-									initial={{ opacity: 0 }}
-									animate={{
-										opacity: 1,
-										backgroundPosition: ["0% 0%", "100% 100%"],
-									}}
-									transition={{
-										backgroundPosition: {
-											repeat: Infinity,
-											duration: 8,
-											ease: "linear",
-											repeatType: "mirror",
-										},
-									}}
-									style={{
-										background:
-											"linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))",
-										backgroundSize: "300% 300%",
-										filter: "blur(5px)",
-										boxShadow:
-											"0 0 15px 3px rgba(139, 92, 246, 0.5), 0 0 30px 10px rgba(59, 130, 246, 0.3)",
-									}}
-								/>
-							)}
-						</motion.button>
+						<AIButton
+							isAiActive={isAiActive}
+							isStreaming={isStreaming}
+							toggleAi={toggleAi}
+						/>
 					</div>
 				</div>
 				<div className="relative">
@@ -306,6 +219,7 @@ export default function AskQuestionForm({
 							className={`textarea-modern w-full relative z-10 ${
 								errors.content ? "input-error" : ""
 							} ${isAiActive || isStreaming ? "ai-textarea-active" : ""}`}
+							onBlur={() => setIsAiActive(false)}
 						/>
 
 						{(isAiActive || isStreaming) && (

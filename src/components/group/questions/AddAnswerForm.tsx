@@ -109,7 +109,11 @@ export default function AddAnswerForm({
 		>
 			<div className="flex justify-between items-center mb-2">
 				<h3 className="text-lg font-medium mb-4">Your Answer</h3>
-				<AIButton isAiActive isStreaming toggleAi={toggleAi} />
+				<AIButton
+					isAiActive={isAiActive}
+					isStreaming={isStreaming}
+					toggleAi={toggleAi}
+				/>
 			</div>
 
 			<div className="relative">
@@ -131,6 +135,7 @@ export default function AddAnswerForm({
 						className={`textarea-modern w-full relative z-10 ${
 							errors.content ? "input-error" : ""
 						} ${isAiActive || isStreaming ? "ai-textarea-active" : ""}`}
+						onBlur={() => setIsAiActive(false)}
 					/>
 
 					{(isAiActive || isStreaming) && (
