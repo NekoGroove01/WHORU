@@ -239,6 +239,160 @@ p {
 	}
 }
 
+/* custom variables */
+
+/* custom variables */
+
+/* Animations for AI textarea */
+@keyframes gradient-shift {
+	0% {
+		background-position: 0% 0%;
+		background-image: linear-gradient(
+			135deg,
+			rgba(59, 130, 246, 0.3),
+			rgba(139, 92, 246, 0.3),
+			rgba(236, 72, 153, 0.3)
+		);
+	}
+	33% {
+		background-position: 100% 100%;
+		background-image: linear-gradient(
+			135deg,
+			rgba(16, 185, 129, 0.3),
+			rgba(59, 130, 246, 0.3),
+			rgba(139, 92, 246, 0.3)
+		);
+	}
+	66% {
+		background-position: 0% 100%;
+		background-image: linear-gradient(
+			135deg,
+			rgba(245, 158, 11, 0.3),
+			rgba(236, 72, 153, 0.3),
+			rgba(16, 185, 129, 0.3)
+		);
+	}
+	100% {
+		background-position: 0% 0%;
+		background-image: linear-gradient(
+			135deg,
+			rgba(59, 130, 246, 0.3),
+			rgba(139, 92, 246, 0.3),
+			rgba(236, 72, 153, 0.3)
+		);
+	}
+}
+
+@keyframes glow-pulse {
+	0% {
+		box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+	}
+	25% {
+		box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+	}
+	50% {
+		box-shadow: 0 0 25px rgba(236, 72, 153, 0.6);
+	}
+	75% {
+		box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+	}
+	100% {
+		box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+	}
+}
+
+.ai-textarea-container {
+	animation: glow-pulse 5s infinite;
+	transition: all 0.3s ease;
+}
+
+.textarea-animated-bg {
+	background: conic-gradient(
+		from 0deg,
+		rgba(59, 130, 246, 0.2),
+		rgba(139, 92, 246, 0.2),
+		rgba(236, 72, 153, 0.2),
+		rgba(16, 185, 129, 0.2),
+		rgba(245, 158, 11, 0.2),
+		rgba(59, 130, 246, 0.2)
+	);
+	background-size: 400% 400%;
+	animation: gradient-shift 8s linear infinite;
+	filter: blur(12px);
+	z-index: 0;
+	transform-origin: center;
+}
+
+.ai-textarea-active {
+	background-color: rgba(255, 255, 255, 0.85) !important;
+	backdrop-filter: blur(4px);
+	border-color: transparent !important;
+	transition: all 0.3s ease;
+}
+
+.ai-textarea-active:focus {
+	background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Dark mode support */
+.dark .ai-textarea-active {
+	background-color: rgba(31, 41, 55, 0.85) !important;
+}
+
+.dark .ai-textarea-active:focus {
+	background-color: rgba(31, 41, 55, 0.95) !important;
+}
+
+.ai-input-container {
+	animation: glow-pulse 5s infinite;
+	transition: all 0.3s ease;
+}
+
+.input-animated-bg {
+	background: conic-gradient(
+		from 0deg,
+		rgba(59, 130, 246, 0.2),
+		rgba(139, 92, 246, 0.2),
+		rgba(236, 72, 153, 0.2),
+		rgba(16, 185, 129, 0.2),
+		rgba(245, 158, 11, 0.2),
+		rgba(59, 130, 246, 0.2)
+	);
+	background-size: 400% 400%;
+	animation: gradient-shift 8s linear infinite;
+	filter: blur(12px);
+	z-index: 0;
+	transform-origin: center;
+}
+
+.ai-input-active {
+	background-color: rgba(255, 255, 255, 0.85) !important;
+	backdrop-filter: blur(4px);
+	border-color: transparent !important;
+	transition: all 0.3s ease;
+}
+
+.ai-input-active:focus {
+	background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Dark mode support */
+.dark .ai-input-active {
+	background-color: rgba(31, 41, 55, 0.85) !important;
+}
+
+.dark .ai-input-active:focus {
+	background-color: rgba(31, 41, 55, 0.95) !important;
+}
+
+/* Make both input and textarea containers match in height with their content */
+.ai-input-container,
+.ai-textarea-container {
+	display: flex;
+	align-items: stretch;
+}
+/* Animations for AI textarea */
+
 /* Custom scrollbar for the application */
 ::-webkit-scrollbar {
 	width: 10px;

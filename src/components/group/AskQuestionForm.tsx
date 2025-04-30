@@ -113,6 +113,7 @@ export default function AskQuestionForm({
 			for (let i = 0; i < aiContent.length; i++) {
 				await new Promise((resolve) => setTimeout(resolve, 15)); // Control streaming speed
 				currentText += aiContent.charAt(i);
+				// Update the textarea with the current text
 				setValue("content", currentText, { shouldValidate: true });
 			}
 
@@ -137,17 +138,47 @@ export default function AskQuestionForm({
 				<div>
 					<label
 						htmlFor="title"
-						className="text-sm text-gray-700 dark:text-gray-300 mb-2"
+						className="text-md text-gray-700 dark:text-gray-300"
 					>
 						Title:
 					</label>
-					<input
-						type="text"
-						id="title"
-						{...register("title")}
-						placeholder="Title of your question..."
-						className={`input-modern ${errors.title ? "input-error" : ""}`}
-					/>
+					<div
+						className={`relative rounded-md overflow-hidden mt-2 ${
+							isAiActive || isStreaming ? "ai-input-container" : ""
+						}`}
+					>
+						<input
+							type="text"
+							id="title"
+							{...register("title")}
+							placeholder="Title of your question..."
+							className={`input-modern w-full relative z-10 ${
+								errors.title ? "input-error" : ""
+							} ${isAiActive || isStreaming ? "ai-input-active" : ""}`}
+						/>
+
+						{(isAiActive || isStreaming) && (
+							<motion.div
+								className="absolute inset-0 input-animated-bg"
+								animate={{
+									rotate: [0, 360],
+									scale: [1, 1.05, 1],
+								}}
+								transition={{
+									rotate: {
+										repeat: Infinity,
+										duration: 15,
+										ease: "linear",
+									},
+									scale: {
+										repeat: Infinity,
+										duration: 3,
+										ease: "easeInOut",
+									},
+								}}
+							/>
+						)}
+					</div>
 					{errors.title && (
 						<p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
 					)}
@@ -157,67 +188,164 @@ export default function AskQuestionForm({
 					<div className="flex justify-between items-center">
 						<label
 							htmlFor="question"
-							className="text-sm text-gray-700 dark:text-gray-300 mb-2"
+							className="text-md text-gray-700 dark:text-gray-300 mb-2"
 						>
 							Question:
 						</label>
-						<button
+						<motion.button
 							type="button"
 							onClick={toggleAi}
 							disabled={isStreaming}
-							className={`p-2 rounded-full transition-all duration-300 ${
-								isAiActive || isStreaming
-									? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
-									: "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-							}`}
+							whileTap={{ scale: 0.95 }}
+							className={`p-2 rounded-full transition-all duration-300 overflow-hidden relative`}
+							initial={false}
+							animate={isAiActive || isStreaming ? "active" : "inactive"}
+							variants={{
+								inactive: {
+									background: "rgb(243, 244, 246)",
+									boxShadow: "0 0 0 rgba(59, 130, 246, 0)",
+								},
+								active: {
+									background:
+										"linear-gradient(135deg, rgb(59, 130, 246), rgb(139, 92, 246), rgb(236, 72, 153))",
+									boxShadow: "0 0 15px rgba(59, 130, 246, 0.5)",
+									backgroundSize: "300% 300%",
+									transition: {
+										backgroundPosition: {
+											repeat: Infinity,
+											duration: 3,
+											ease: "linear",
+											from: "0% 0%",
+											to: "100% 100%",
+										},
+									},
+								},
+							}}
 						>
-							<RiSparklingFill
-								className={`text-lg ${
-									isAiActive || isStreaming ? "animate-pulse" : ""
-								}`}
-							/>
-						</button>
+							<motion.div
+								variants={{
+									inactive: {
+										rotate: 0,
+										opacity: 0.7,
+										scale: 1,
+									},
+									active: {
+										rotate: [0, 15, -15, 0],
+										opacity: 1,
+										scale: [1, 1.2, 1],
+										transition: {
+											rotate: {
+												repeat: Infinity,
+												repeatType: "reverse",
+												duration: 1.5,
+											},
+											scale: {
+												repeat: Infinity,
+												repeatType: "reverse",
+												duration: 1,
+											},
+										},
+									},
+								}}
+								animate={isStreaming ? "active" : "inactive"}
+							>
+								<RiSparklingFill
+									className={`text-lg ${
+										isAiActive || isStreaming
+											? "text-white"
+											: "text-gray-500 dark:text-gray-300"
+									}`}
+								/>
+							</motion.div>
+
+							{(isAiActive || isStreaming) && (
+								<motion.div
+									className="absolute inset-0 z-0 rounded-md"
+									initial={{ opacity: 0 }}
+									animate={{
+										opacity: 1,
+										backgroundPosition: ["0% 0%", "100% 100%"],
+									}}
+									transition={{
+										backgroundPosition: {
+											repeat: Infinity,
+											duration: 8,
+											ease: "linear",
+											repeatType: "mirror",
+										},
+									}}
+									style={{
+										background:
+											"linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))",
+										backgroundSize: "300% 300%",
+										filter: "blur(5px)",
+										boxShadow:
+											"0 0 15px 3px rgba(139, 92, 246, 0.5), 0 0 30px 10px rgba(59, 130, 246, 0.3)",
+									}}
+								/>
+							)}
+						</motion.button>
 					</div>
 				</div>
 				<div className="relative">
-					<TextareaAutosize
-						id="question"
-						ref={(e) => {
-							ref(e);
-							textareaRef.current = e;
-						}}
-						{...rest}
-						placeholder="Describe your question in detail..."
-						minRows={3}
-						maxRows={15}
-						className={`textarea-modern ${
-							errors.content ? "input-error" : ""
-						} ${
-							isAiActive ? "border-2 border-transparent bg-clip-padding" : ""
+					<div
+						className={`relative rounded-md overflow-hidden ${
+							isAiActive || isStreaming ? "ai-textarea-container" : ""
 						}`}
-						style={
-							isAiActive
-								? {
-										backgroundImage:
-											"linear-gradient(white, white), linear-gradient(to right, #3b82f6, #8b5cf6)",
-										backgroundOrigin: "border-box",
-										backgroundClip: "padding-box, border-box",
-								  }
-								: {}
-						}
-					/>
+					>
+						<TextareaAutosize
+							id="question"
+							ref={(e) => {
+								ref(e);
+								textareaRef.current = e;
+							}}
+							{...rest}
+							placeholder="Describe your question in detail..."
+							minRows={3}
+							maxRows={15}
+							className={`textarea-modern w-full relative z-10 ${
+								errors.content ? "input-error" : ""
+							} ${isAiActive || isStreaming ? "ai-textarea-active" : ""}`}
+						/>
+
+						{(isAiActive || isStreaming) && (
+							<motion.div
+								className="absolute inset-0 textarea-animated-bg"
+								animate={{
+									rotate: [0, 360], // Added rotation animation
+									scale: [1, 1.05, 1], // Subtle pulse
+								}}
+								transition={{
+									backgroundPosition: {
+										repeat: Infinity,
+										duration: 10,
+										ease: "linear",
+										repeatType: "mirror",
+									},
+								}}
+							/>
+						)}
+					</div>
+
 					{errors.content && (
 						<p className="mt-1 text-sm text-red-500">
 							{errors.content.message}
 						</p>
 					)}
+
 					{isStreaming && (
 						<motion.div
-							className="absolute bottom-3 right-3"
-							animate={{ opacity: [0.5, 1, 0.5] }}
-							transition={{ repeat: Infinity, duration: 1.5 }}
+							className="absolute bottom-3 right-3 z-20"
+							animate={{
+								scale: [1, 1.3, 1],
+								opacity: [0.5, 1, 0.5],
+							}}
+							transition={{
+								repeat: Infinity,
+								duration: 1.5,
+							}}
 						>
-							<div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+							<div className="h-3 w-3 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50"></div>
 						</motion.div>
 					)}
 				</div>
