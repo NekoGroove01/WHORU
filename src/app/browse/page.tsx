@@ -18,7 +18,7 @@ import {
 	showContainer,
 	showContainerChildren,
 	staggerContainer,
-} from "@/utils/motion/basicMotion";
+} from "@/utils/basicMotion";
 import { Group } from "@/types/group";
 import { GroupCard } from "@/components/browse/GroupCard";
 import { useBackNavigation } from "../../hooks/useBackNavigation";

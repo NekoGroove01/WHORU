@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FaPaperPlane } from "react-icons/fa";
+import { RiSparklingFill } from "react-icons/ri";
 import TextareaAutosize from "react-textarea-autosize";
 import { nanoid } from "nanoid";
 import { useQuestionStore } from "@/store/questionStore";
@@ -33,6 +34,9 @@ export default function AskQuestionForm({
 	groupId,
 }: Readonly<AskQuestionFormProps>) {
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+	const [isAiActive, setIsAiActive] = useState(false);
+	const [isStreaming, setIsStreaming] = useState(false);
+	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const { group } = useGroupStore();
 	const { addQuestion } = useQuestionStore();
 
@@ -40,6 +44,8 @@ export default function AskQuestionForm({
 		register,
 		handleSubmit,
 		reset,
+		setValue,
+		watch,
 		formState: { errors, isSubmitting },
 	} = useForm<QuestionFormValues>({
 		resolver: zodResolver(questionSchema),
@@ -49,6 +55,8 @@ export default function AskQuestionForm({
 			tags: [],
 		},
 	});
+
+	const currentContent = watch("content");
 
 	const onSubmit = async (data: QuestionFormValues) => {
 		try {
@@ -88,6 +96,33 @@ export default function AskQuestionForm({
 		);
 	};
 
+	const toggleAi = async () => {
+		setIsAiActive((prev) => !prev);
+
+		if (!isAiActive && !isStreaming) {
+			// Simulate AI generating content
+			setIsStreaming(true);
+
+			// Example AI generated content - would come from an API in a real app
+			const aiContent =
+				"I'm trying to understand how to implement a recursive algorithm for traversing a binary tree. Can someone explain the best approach and possible edge cases I should consider?";
+
+			let currentText = currentContent;
+
+			// Simulate streaming effect
+			for (let i = 0; i < aiContent.length; i++) {
+				await new Promise((resolve) => setTimeout(resolve, 15)); // Control streaming speed
+				currentText += aiContent.charAt(i);
+				setValue("content", currentText, { shouldValidate: true });
+			}
+
+			setIsStreaming(false);
+		}
+	};
+
+	// Register the textarea with a ref so we can focus it
+	const { ref, ...rest } = register("content");
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, y: 10 }}
@@ -111,7 +146,6 @@ export default function AskQuestionForm({
 						id="title"
 						{...register("title")}
 						placeholder="Title of your question..."
-						{...register("title")}
 						className={`input-modern ${errors.title ? "input-error" : ""}`}
 					/>
 					{errors.title && (
@@ -120,27 +154,71 @@ export default function AskQuestionForm({
 				</div>
 
 				<div>
-					<label
-						htmlFor="question"
-						className="text-sm text-gray-700 dark:text-gray-300 mb-2"
-					>
-						Question:
-					</label>
+					<div className="flex justify-between items-center">
+						<label
+							htmlFor="question"
+							className="text-sm text-gray-700 dark:text-gray-300 mb-2"
+						>
+							Question:
+						</label>
+						<button
+							type="button"
+							onClick={toggleAi}
+							disabled={isStreaming}
+							className={`p-2 rounded-full transition-all duration-300 ${
+								isAiActive || isStreaming
+									? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
+									: "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+							}`}
+						>
+							<RiSparklingFill
+								className={`text-lg ${
+									isAiActive || isStreaming ? "animate-pulse" : ""
+								}`}
+							/>
+						</button>
+					</div>
 				</div>
-				<div>
+				<div className="relative">
 					<TextareaAutosize
 						id="question"
-						{...register("content")}
+						ref={(e) => {
+							ref(e);
+							textareaRef.current = e;
+						}}
+						{...rest}
 						placeholder="Describe your question in detail..."
-						{...register("content")}
 						minRows={3}
 						maxRows={15}
-						className={`textarea-modern ${errors.content ? "input-error" : ""}`}
+						className={`textarea-modern ${
+							errors.content ? "input-error" : ""
+						} ${
+							isAiActive ? "border-2 border-transparent bg-clip-padding" : ""
+						}`}
+						style={
+							isAiActive
+								? {
+										backgroundImage:
+											"linear-gradient(white, white), linear-gradient(to right, #3b82f6, #8b5cf6)",
+										backgroundOrigin: "border-box",
+										backgroundClip: "padding-box, border-box",
+								  }
+								: {}
+						}
 					/>
 					{errors.content && (
 						<p className="mt-1 text-sm text-red-500">
 							{errors.content.message}
 						</p>
+					)}
+					{isStreaming && (
+						<motion.div
+							className="absolute bottom-3 right-3"
+							animate={{ opacity: [0.5, 1, 0.5] }}
+							transition={{ repeat: Infinity, duration: 1.5 }}
+						>
+							<div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+						</motion.div>
 					)}
 				</div>
 
@@ -171,7 +249,7 @@ export default function AskQuestionForm({
 				<div className="pt-2">
 					<button
 						type="submit"
-						disabled={isSubmitting}
+						disabled={isSubmitting || isStreaming}
 						className="w-full btn-primary flex items-center justify-center gap-2"
 					>
 						<FaPaperPlane />
