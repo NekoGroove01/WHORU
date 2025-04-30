@@ -1,4 +1,6 @@
 // AIButton.tsx
+"use client";
+
 import { motion } from "framer-motion";
 import { RiSparklingFill } from "react-icons/ri";
 

@@ -10,7 +10,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { nanoid } from "nanoid";
 import { useQuestionStore } from "@/store/questionStore";
 import { useGroupStore } from "@/store/groupStore";
-import AIButton from "../ui/AIButton";
+import AiButton from "../ui/AiButton";
 
 type AskQuestionFormProps = {
 	groupId: string;
@@ -193,7 +193,7 @@ export default function AskQuestionForm({
 						>
 							Question:
 						</label>
-						<AIButton
+						<AiButton
 							isAiActive={isAiActive}
 							isStreaming={isStreaming}
 							toggleAi={toggleAi}

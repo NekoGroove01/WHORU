@@ -8,7 +8,8 @@ import TextareaAutosize from "react-textarea-autosize";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import AIButton from "@/components/ui/AIButton";
+import AiButton from "@/components/ui/AiButton";
+import fetchGeminiResponse from "@/utils/geminiAPI";
 
 // Define Zod schema for answer validation
 const answerSchema = z.object({
@@ -33,7 +34,10 @@ export default function AddAnswerForm({
 }: Readonly<AddAnswerFormProps>) {
 	const [isAiActive, setIsAiActive] = useState(false);
 	const [isStreaming, setIsStreaming] = useState(false);
+
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const abortControllerRef = useRef<AbortController | null>(null);
+
 	const { addAnswer } = useAnswerStore();
 
 	const {
@@ -49,8 +53,6 @@ export default function AddAnswerForm({
 			content: "",
 		},
 	});
-
-	const currentContent = watch("content");
 
 	const onSubmit = async (data: AnswerFormValues) => {
 		try {
@@ -72,27 +74,54 @@ export default function AddAnswerForm({
 	};
 
 	const toggleAi = async () => {
+		// If currently streaming, abort it
+		if (isStreaming) {
+			if (abortControllerRef.current) {
+				abortControllerRef.current.abort();
+				abortControllerRef.current = null;
+			}
+			setIsStreaming(false);
+			return;
+		}
+
 		setIsAiActive((prev) => !prev);
 
-		if (!isAiActive && !isStreaming) {
-			// Simulate AI generating content
-			setIsStreaming(true);
+		if (!isAiActive) {
+			try {
+				setIsStreaming(true);
 
-			// Example AI generated content - would come from an API in a real app
-			const aiContent =
-				"I'm trying to understand how to implement a recursive algorithm for traversing a binary tree. Can someone explain the best approach and possible edge cases I should consider?";
+				// Create a new AbortController for this request
+				abortControllerRef.current = new AbortController();
 
-			let currentText = currentContent;
+				// Get the current content
+				const currentTextContent = watch("content");
 
-			// Simulate streaming effect
-			for (let i = 0; i < aiContent.length; i++) {
-				await new Promise((resolve) => setTimeout(resolve, 15)); // Control streaming speed
-				currentText += aiContent.charAt(i);
-				// Update the textarea with the current text
-				setValue("content", currentText, { shouldValidate: true });
+				// Start with the current content if any
+				let streamedContent = currentTextContent;
+
+				// Call the API with streaming callback and pass the abort signal
+				await fetchGeminiResponse(
+					questionTitle || "Question",
+					(questionContent || "") +
+						(currentTextContent
+							? `\n\nCurrent draft: ${currentTextContent}`
+							: ""),
+					0, // Using prompt type 1 for answer generation
+					(chunkText: string) => {
+						streamedContent += chunkText;
+						setValue("content", streamedContent, { shouldValidate: true });
+					},
+					abortControllerRef.current.signal // Pass the abort signal
+				);
+			} catch (error: unknown) {
+				// Check if the error is an abort error
+				if (error instanceof Error && error.name !== "AbortError") {
+					console.error("Error with AI generation:", error);
+				}
+			} finally {
+				setIsStreaming(false);
+				abortControllerRef.current = null;
 			}
-
-			setIsStreaming(false);
 		}
 	};
 
@@ -109,7 +138,7 @@ export default function AddAnswerForm({
 		>
 			<div className="flex justify-between items-center mb-2">
 				<h3 className="text-lg font-medium mb-4">Your Answer</h3>
-				<AIButton
+				<AiButton
 					isAiActive={isAiActive}
 					isStreaming={isStreaming}
 					toggleAi={toggleAi}

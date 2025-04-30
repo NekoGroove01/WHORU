@@ -9,9 +9,9 @@ const models: Record<string, string> = {
 	"flash-2.5-exp": "models/gemini-2.5-flash-preview-04-17",
 };
 
-const prompts: Record<string, string> = {
-	question: "You are a helpful assistant. Answer the question: {question}",
-	answer: "You are a helpful assistant. Answer the question: {question}",
+const prompts: Record<number, string> = {
+	0: "You are a helpful assistant. Answer the question: {question}",
+	1: "You are a helpful assistant. Answer the question: {question}",
 };
 
 /**
@@ -24,8 +24,9 @@ const prompts: Record<string, string> = {
 export default async function fetchGeminiResponse(
 	question: string,
 	input: string | null,
-	prompt: string = "question",
-	onChunk?: (text: string) => void
+	prompt: number = 0,
+	onChunk?: (text: string) => void,
+	abortSignal?: AbortSignal
 ) {
 	try {
 		const response = await ai.models.generateContentStream({
@@ -38,6 +39,11 @@ export default async function fetchGeminiResponse(
 		let fullText = "";
 
 		for await (const chunk of response) {
+			// Check if aborted before processing each chunk
+			if (abortSignal?.aborted) {
+				throw new DOMException("Aborted", "AbortError");
+			}
+
 			// Add the new chunk to the accumulated text
 			fullText += chunk.text;
 
