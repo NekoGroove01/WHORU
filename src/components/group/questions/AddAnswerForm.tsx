@@ -24,13 +24,13 @@ type AnswerFormValues = z.infer<typeof answerSchema>;
 type AddAnswerFormProps = {
 	questionId: string;
 	questionTitle?: string; // Optional prop to pass question title for AI context
-	questionContent?: string; // Optional prop to pass question content for AI context
+	answerContent?: string; // Optional prop to pass question content for AI context
 };
 
 export default function AddAnswerForm({
 	questionId,
 	questionTitle = "",
-	questionContent = "",
+	answerContent: questionContent = "",
 }: Readonly<AddAnswerFormProps>) {
 	const [isAiActive, setIsAiActive] = useState(false);
 	const [isStreaming, setIsStreaming] = useState(false);

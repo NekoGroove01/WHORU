@@ -11,9 +11,12 @@ import { nanoid } from "nanoid";
 import { useQuestionStore } from "@/store/questionStore";
 import { useGroupStore } from "@/store/groupStore";
 import AiButton from "../ui/AiButton";
+import fetchGeminiResponse from "@/utils/geminiAPI";
 
 type AskQuestionFormProps = {
 	groupId: string;
+	questionTitle?: string;
+	questionContent?: string;
 };
 
 const questionSchema = z.object({
@@ -32,6 +35,8 @@ type QuestionFormValues = z.infer<typeof questionSchema>;
 
 export default function AskQuestionForm({
 	groupId,
+	questionTitle = "",
+	questionContent = "",
 }: Readonly<AskQuestionFormProps>) {
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const [isAiActive, setIsAiActive] = useState(false);
@@ -56,7 +61,7 @@ export default function AskQuestionForm({
 		},
 	});
 
-	const currentContent = watch("content");
+	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const onSubmit = async (data: QuestionFormValues) => {
 		try {
@@ -97,27 +102,54 @@ export default function AskQuestionForm({
 	};
 
 	const toggleAi = async () => {
+		// If currently streaming, abort it
+		if (isStreaming) {
+			if (abortControllerRef.current) {
+				abortControllerRef.current.abort();
+				abortControllerRef.current = null;
+			}
+			setIsStreaming(false);
+			return;
+		}
+
 		setIsAiActive((prev) => !prev);
 
-		if (!isAiActive && !isStreaming) {
-			// Simulate AI generating content
-			setIsStreaming(true);
+		if (!isAiActive) {
+			try {
+				setIsStreaming(true);
 
-			// Example AI generated content - would come from an API in a real app
-			const aiContent =
-				"I'm trying to understand how to implement a recursive algorithm for traversing a binary tree. Can someone explain the best approach and possible edge cases I should consider?";
+				// Create a new AbortController for this request
+				abortControllerRef.current = new AbortController();
 
-			let currentText = currentContent;
+				// Get the current content
+				const currentTextContent = watch("content");
 
-			// Simulate streaming effect
-			for (let i = 0; i < aiContent.length; i++) {
-				await new Promise((resolve) => setTimeout(resolve, 15)); // Control streaming speed
-				currentText += aiContent.charAt(i);
-				// Update the textarea with the current text
-				setValue("content", currentText, { shouldValidate: true });
+				// Start with the current content if any
+				let streamedContent = currentTextContent;
+
+				// Call the API with streaming callback and pass the abort signal
+				await fetchGeminiResponse(
+					questionTitle || "Question",
+					(questionContent || "") +
+						(currentTextContent
+							? `\n\nCurrent draft: ${currentTextContent}`
+							: ""),
+					0, // Using prompt type 1 for answer generation
+					(chunkText: string) => {
+						streamedContent += chunkText;
+						setValue("content", streamedContent, { shouldValidate: true });
+					},
+					abortControllerRef.current.signal // Pass the abort signal
+				);
+			} catch (error: unknown) {
+				// Check if the error is an abort error
+				if (error instanceof Error && error.name !== "AbortError") {
+					console.error("Error with AI generation:", error);
+				}
+			} finally {
+				setIsStreaming(false);
+				abortControllerRef.current = null;
 			}
-
-			setIsStreaming(false);
 		}
 	};
 
