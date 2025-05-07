@@ -111,7 +111,7 @@ export default function AiButton({
 				)}
 			</motion.button>
 			{/* tooltip that appears on hover */}
-			<div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+			<div className="absolute z-100 left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
 				<div className="bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
 					AI Generate
 					<div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
