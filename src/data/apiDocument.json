@@ -1,0 +1,807 @@
+{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "WHORU Anonymous Q&A API documentation",
+		"description": "API documentation for the WHORU anonymous Q&A platform supporting questions, answers, and media attachments",
+		"version": "1.0.0",
+		"contact": {
+			"email": "support@whoru.app"
+		}
+	},
+	"servers": [
+		{
+			"url": "https://api.whoru.app/v1",
+			"description": "Production server"
+		},
+		{
+			"url": "https://dev-api.whoru.app/v1",
+			"description": "Development server"
+		}
+	],
+	"tags": [
+		{
+			"name": "groups",
+			"description": "Group management operations"
+		},
+		{
+			"name": "questions",
+			"description": "Question operations"
+		},
+		{
+			"name": "answers",
+			"description": "Answer operations"
+		},
+		{
+			"name": "media",
+			"description": "Media upload and management"
+		},
+		{
+			"name": "identity",
+			"description": "Temporary identity management"
+		}
+	],
+	"paths": {
+		"/groups": {
+			"get": {
+				"tags": ["groups"],
+				"summary": "Get list of public groups",
+				"description": "Returns a list of all public groups available in the system",
+				"operationId": "getPublicGroups",
+				"parameters": [
+					{
+						"name": "page",
+						"in": "query",
+						"description": "Page number for pagination",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"default": 1
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"description": "Number of items per page",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"default": 20
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"total": {
+											"type": "integer"
+										},
+										"page": {
+											"type": "integer"
+										},
+										"limit": {
+											"type": "integer"
+										},
+										"groups": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/Group"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"tags": ["groups"],
+				"summary": "Create a new group",
+				"description": "Create a new question group (public or private)",
+				"operationId": "createGroup",
+				"requestBody": {
+					"description": "Group object to be created",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GroupCreate"
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Group created successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Group"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input"
+					}
+				}
+			}
+		},
+		"/groups/{groupId}": {
+			"get": {
+				"tags": ["groups"],
+				"summary": "Get group by ID",
+				"description": "Returns a single group by ID",
+				"operationId": "getGroupById",
+				"parameters": [
+					{
+						"name": "groupId",
+						"in": "path",
+						"description": "ID of group to return",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Group"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found"
+					}
+				}
+			}
+		},
+		"/groups/join": {
+			"post": {
+				"tags": ["groups"],
+				"summary": "Join a private group",
+				"description": "Join a private group using access code",
+				"operationId": "joinPrivateGroup",
+				"requestBody": {
+					"description": "Access credentials for the group",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"accessCode": {
+										"type": "string"
+									}
+								},
+								"required": ["accessCode"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Successfully joined group",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Group"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found"
+					},
+					"403": {
+						"description": "Invalid access code"
+					}
+				}
+			}
+		},
+		"/groups/{groupId}/questions": {
+			"get": {
+				"tags": ["questions"],
+				"summary": "Get questions for a group",
+				"description": "Returns list of questions for the specified group",
+				"operationId": "getGroupQuestions",
+				"parameters": [
+					{
+						"name": "groupId",
+						"in": "path",
+						"description": "ID of group",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "page",
+						"in": "query",
+						"schema": {
+							"type": "integer",
+							"default": 1
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "integer",
+							"default": 20
+						}
+					},
+					{
+						"name": "tag",
+						"in": "query",
+						"description": "Filter by tag",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"total": {
+											"type": "integer"
+										},
+										"questions": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/Question"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"tags": ["questions"],
+				"summary": "Post a new question",
+				"description": "Add a new question to the group",
+				"operationId": "addQuestion",
+				"parameters": [
+					{
+						"name": "groupId",
+						"in": "path",
+						"description": "ID of group",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Question to add",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/QuestionCreate"
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Question created successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Question"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/questions/{questionId}/answers": {
+			"get": {
+				"tags": ["answers"],
+				"summary": "Get answers for a question",
+				"operationId": "getQuestionAnswers",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/Answer"
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"tags": ["answers"],
+				"summary": "Post an answer to a question",
+				"operationId": "addAnswer",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Answer content",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AnswerCreate"
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Answer created successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Answer"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/media/upload": {
+			"post": {
+				"tags": ["media"],
+				"summary": "Get pre-signed URL for media upload",
+				"operationId": "getMediaUploadUrl",
+				"requestBody": {
+					"description": "Media file information",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"fileName": {
+										"type": "string"
+									},
+									"fileType": {
+										"type": "string"
+									},
+									"fileSize": {
+										"type": "integer"
+									},
+									"groupId": {
+										"type": "string"
+									}
+								},
+								"required": ["fileName", "fileType", "fileSize", "groupId"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Pre-signed URL generated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"uploadUrl": {
+											"type": "string"
+										},
+										"mediaId": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/identity/{groupId}": {
+			"post": {
+				"tags": ["identity"],
+				"summary": "Create or update temporary nickname",
+				"operationId": "createTempIdentity",
+				"parameters": [
+					{
+						"name": "groupId",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Temporary identity details",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"nickname": {
+										"type": "string"
+									},
+									"password": {
+										"type": "string",
+										"description": "Optional password to retain nickname"
+									}
+								},
+								"required": ["nickname"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Identity created or updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"nickname": {
+											"type": "string"
+										},
+										"groupId": {
+											"type": "string"
+										},
+										"token": {
+											"type": "string",
+											"description": "Session token for this identity"
+										}
+									}
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Nickname already taken"
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"Group": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"isPublic": {
+						"type": "boolean"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"settings": {
+						"type": "object",
+						"properties": {
+							"allowVoting": {
+								"type": "boolean"
+							},
+							"allowAnonymousQuestions": {
+								"type": "boolean"
+							},
+							"allowTagging": {
+								"type": "boolean"
+							},
+							"moderationEnabled": {
+								"type": "boolean"
+							}
+						}
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"memberCount": {
+						"type": "integer"
+					}
+				}
+			},
+			"GroupCreate": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"isPublic": {
+						"type": "boolean",
+						"default": true
+					},
+					"settings": {
+						"type": "object",
+						"properties": {
+							"allowVoting": {
+								"type": "boolean",
+								"default": true
+							},
+							"allowAnonymousQuestions": {
+								"type": "boolean",
+								"default": true
+							},
+							"allowTagging": {
+								"type": "boolean",
+								"default": true
+							},
+							"moderationEnabled": {
+								"type": "boolean",
+								"default": false
+							}
+						}
+					},
+					"expiresAfter": {
+						"type": "integer",
+						"description": "Expiration in days (0 = never)"
+					}
+				},
+				"required": ["name"]
+			},
+			"Question": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"groupId": {
+						"type": "string"
+					},
+					"content": {
+						"type": "string"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"status": {
+						"type": "string",
+						"enum": ["open", "answered", "closed"]
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"tempNickname": {
+						"type": "string"
+					},
+					"upvotes": {
+						"type": "integer"
+					},
+					"views": {
+						"type": "integer"
+					},
+					"mediaAttachments": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"mediaId": {
+									"type": "string"
+								},
+								"url": {
+									"type": "string"
+								},
+								"thumbnailUrl": {
+									"type": "string"
+								},
+								"mimeType": {
+									"type": "string"
+								},
+								"displayOrder": {
+									"type": "integer"
+								}
+							}
+						}
+					},
+					"poll": {
+						"type": "object",
+						"properties": {
+							"options": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"votes": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"option": {
+											"type": "integer"
+										},
+										"count": {
+											"type": "integer"
+										}
+									}
+								}
+							},
+							"allowMultiple": {
+								"type": "boolean"
+							}
+						}
+					},
+					"aiSuggested": {
+						"type": "boolean"
+					}
+				}
+			},
+			"QuestionCreate": {
+				"type": "object",
+				"properties": {
+					"content": {
+						"type": "string"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"mediaIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "IDs of previously uploaded media files"
+					},
+					"poll": {
+						"type": "object",
+						"properties": {
+							"options": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"allowMultiple": {
+								"type": "boolean",
+								"default": false
+							}
+						}
+					}
+				},
+				"required": ["content"]
+			},
+			"Answer": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"questionId": {
+						"type": "string"
+					},
+					"content": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"tempNickname": {
+						"type": "string"
+					},
+					"reactions": {
+						"type": "object",
+						"properties": {
+							"likes": {
+								"type": "integer"
+							},
+							"dislikes": {
+								"type": "integer"
+							}
+						}
+					},
+					"mediaAttachments": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"mediaId": {
+									"type": "string"
+								},
+								"url": {
+									"type": "string"
+								},
+								"thumbnailUrl": {
+									"type": "string"
+								},
+								"mimeType": {
+									"type": "string"
+								},
+								"displayOrder": {
+									"type": "integer"
+								}
+							}
+						}
+					},
+					"isAccepted": {
+						"type": "boolean"
+					},
+					"isAIGenerated": {
+						"type": "boolean"
+					}
+				}
+			},
+			"AnswerCreate": {
+				"type": "object",
+				"properties": {
+					"content": {
+						"type": "string"
+					},
+					"mediaIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					}
+				},
+				"required": ["content"]
+			}
+		}
+	}
+}
