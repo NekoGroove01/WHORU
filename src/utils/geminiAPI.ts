@@ -1,8 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize the GoogleGenAI client with API key
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API });
-
 // Gemini API models
 const models: Record<string, string> = {
 	"flash-2.0": "gemini-2.0-flash",
@@ -28,6 +25,8 @@ export default async function fetchGeminiResponse(
 	onChunk?: (text: string) => void,
 	abortSignal?: AbortSignal
 ) {
+	// Initialize the GoogleGenAI client with API key
+	const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API });
 	try {
 		const response = await ai.models.generateContentStream({
 			model: models["flash-2.0"],
