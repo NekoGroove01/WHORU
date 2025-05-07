@@ -101,11 +101,10 @@ export default function AddAnswerForm({
 
 				// Call the API with streaming callback and pass the abort signal
 				await fetchGeminiResponse(
-					questionTitle || "Question",
-					(questionContent || "") +
-						(currentTextContent
-							? `\n\nCurrent draft: ${currentTextContent}`
-							: ""),
+					questionTitle || questionContent
+						? `${questionTitle}: ${questionContent}`
+						: "No question, please add an any answers.",
+					currentTextContent ?? "",
 					0, // Using prompt type 1 for answer generation
 					(chunkText: string) => {
 						streamedContent += chunkText;

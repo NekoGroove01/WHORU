@@ -15,8 +15,6 @@ import fetchGeminiResponse from "@/utils/geminiAPI";
 
 type AskQuestionFormProps = {
 	groupId: string;
-	questionTitle?: string;
-	questionContent?: string;
 };
 
 const questionSchema = z.object({
@@ -35,8 +33,6 @@ type QuestionFormValues = z.infer<typeof questionSchema>;
 
 export default function AskQuestionForm({
 	groupId,
-	questionTitle = "",
-	questionContent = "",
 }: Readonly<AskQuestionFormProps>) {
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const [isAiActive, setIsAiActive] = useState(false);
@@ -127,13 +123,14 @@ export default function AskQuestionForm({
 				// Start with the current content if any
 				let streamedContent = currentTextContent;
 
+				console.log(`Streaming AI response... ${streamedContent}`);
+
 				// Call the API with streaming callback and pass the abort signal
 				await fetchGeminiResponse(
-					questionTitle || "Question",
-					(questionContent || "") +
-						(currentTextContent
-							? `\n\nCurrent draft: ${currentTextContent}`
-							: ""),
+					group
+						? `${group?.name}: ${group?.description}`
+						: "No topic, please generate any question",
+					currentTextContent ?? "",
 					0, // Using prompt type 1 for answer generation
 					(chunkText: string) => {
 						streamedContent += chunkText;
