@@ -1,4 +1,4 @@
-// answerStore.ts
+// store/answerStore.ts
 import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { Answer } from "@/types/answer";

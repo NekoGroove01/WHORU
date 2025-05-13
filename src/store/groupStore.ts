@@ -1,3 +1,4 @@
+// store/groupStore.ts
 import { create } from "zustand";
 import { Group } from "@/types/group";
 
