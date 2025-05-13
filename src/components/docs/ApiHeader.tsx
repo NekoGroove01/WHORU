@@ -3,7 +3,7 @@
 export default function ApiHeader({ info }: Readonly<ApiHeaderProps>) {
 	return (
 		<div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-			<h1 className="!text-3xl md:!text-5xl font-bold text-gray-900 dark:text-white">
+			<h1 className="!text-3xl md:!text-4xl !font-semibold text-gray-900 dark:text-white">
 				{info.title}
 			</h1>
 			<div className="mt-2 flex items-center">

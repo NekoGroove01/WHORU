@@ -37,8 +37,8 @@ export default function SideNavigation({
 	};
 
 	return (
-		<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-			<h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+		<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+			<h2 className="!text-2xl !font-semibold text-gray-900 dark:text-white mb-4">
 				API Endpoints
 			</h2>
 
@@ -73,7 +73,7 @@ export default function SideNavigation({
 								{tag.name}
 							</button>
 							<button
-								className="p-1 text-gray-500 dark:text-gray-400"
+								className="py-1 px-2 text-gray-500 dark:text-gray-400"
 								onClick={() => toggleExpand(tag.name)}
 							>
 								{isExpanded[tag.name] ? "−" : "+"}
