@@ -2,7 +2,7 @@
 	"openapi": "3.0.0",
 	"info": {
 		"title": "WHORU Anonymous Q&A API documentation",
-		"description": "API documentation for the WHORU anonymous Q&A platform supporting questions, answers, and media attachments",
+		"description": "API documentation for the WHORU anonymous Q&A platform supporting groups, questions, answers, media attachments, temporary identities, and tags.",
 		"version": "1.0.0",
 		"contact": {
 			"email": "support@whoru.app"
@@ -38,6 +38,18 @@
 		{
 			"name": "identity",
 			"description": "Temporary identity management"
+		},
+		{
+			"name": "tags",
+			"description": "Tag management and retrieval operations"
+		},
+		{
+			"name": "voting",
+			"description": "Operations for upvoting/downvoting questions and answers"
+		},
+		{
+			"name": "ai",
+			"description": "AI-powered features like answer generation and similar question suggestions"
 		}
 	],
 	"paths": {
@@ -45,7 +57,7 @@
 			"get": {
 				"tags": ["groups"],
 				"summary": "Get list of public groups",
-				"description": "Returns a list of all public groups available in the system",
+				"description": "Returns a paginated list of all public groups available in the system.",
 				"operationId": "getPublicGroups",
 				"parameters": [
 					{
@@ -55,7 +67,8 @@
 						"required": false,
 						"schema": {
 							"type": "integer",
-							"default": 1
+							"default": 1,
+							"minimum": 1
 						}
 					},
 					{
@@ -65,7 +78,31 @@
 						"required": false,
 						"schema": {
 							"type": "integer",
-							"default": 20
+							"default": 20,
+							"minimum": 1,
+							"maximum": 100
+						}
+					},
+					{
+						"name": "sortBy",
+						"in": "query",
+						"description": "Field to sort by (e.g., 'createdAt', 'memberCount', 'name')",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["createdAt", "memberCount", "name", "lastActivity"],
+							"default": "lastActivity"
+						}
+					},
+					{
+						"name": "sortOrder",
+						"in": "query",
+						"description": "Sort order ('asc' or 'desc')",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["asc", "desc"],
+							"default": "desc"
 						}
 					}
 				],
@@ -96,13 +133,23 @@
 								}
 							}
 						}
+					},
+					"400": {
+						"description": "Invalid query parameters",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					}
 				}
 			},
 			"post": {
 				"tags": ["groups"],
 				"summary": "Create a new group",
-				"description": "Create a new question group (public or private)",
+				"description": "Create a new question group (public or private). An access code will be generated for private groups.",
 				"operationId": "createGroup",
 				"requestBody": {
 					"description": "Group object to be created",
@@ -127,7 +174,14 @@
 						}
 					},
 					"400": {
-						"description": "Invalid input"
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -136,7 +190,7 @@
 			"get": {
 				"tags": ["groups"],
 				"summary": "Get group by ID",
-				"description": "Returns a single group by ID",
+				"description": "Returns a single group by ID. Requires access code if the group is private and the user hasn't joined.",
 				"operationId": "getGroupById",
 				"parameters": [
 					{
@@ -145,7 +199,8 @@
 						"description": "ID of group to return",
 						"required": true,
 						"schema": {
-							"type": "string"
+							"type": "string",
+							"format": "uuid"
 						}
 					}
 				],
@@ -160,8 +215,139 @@
 							}
 						}
 					},
+					"403": {
+						"description": "Access denied for private group",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
 					"404": {
-						"description": "Group not found"
+						"description": "Group not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"tags": ["groups"],
+				"summary": "Update an existing group",
+				"description": "Update details of an existing group. Requires appropriate permissions (e.g., group creator or admin).",
+				"operationId": "updateGroup",
+				"parameters": [
+					{
+						"name": "groupId",
+						"in": "path",
+						"description": "ID of group to update",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Group object with fields to update",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GroupUpdate"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Group updated successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Group"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"tags": ["groups"],
+				"summary": "Delete a group",
+				"description": "Permanently delete a group. Requires appropriate permissions.",
+				"operationId": "deleteGroup",
+				"parameters": [
+					{
+						"name": "groupId",
+						"in": "path",
+						"description": "ID of group to delete",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "Group deleted successfully"
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -170,7 +356,7 @@
 			"post": {
 				"tags": ["groups"],
 				"summary": "Join a private group",
-				"description": "Join a private group using access code",
+				"description": "Join a private group using its access code. This grants the user access to view the group's content.",
 				"operationId": "joinPrivateGroup",
 				"requestBody": {
 					"description": "Access credentials for the group",
@@ -181,7 +367,8 @@
 								"type": "object",
 								"properties": {
 									"accessCode": {
-										"type": "string"
+										"type": "string",
+										"description": "The access code for the private group."
 									}
 								},
 								"required": ["accessCode"]
@@ -200,11 +387,35 @@
 							}
 						}
 					},
-					"404": {
-						"description": "Group not found"
+					"400": {
+						"description": "Invalid request body",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					},
 					"403": {
-						"description": "Invalid access code"
+						"description": "Invalid access code",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found for the given access code",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -213,7 +424,7 @@
 			"get": {
 				"tags": ["questions"],
 				"summary": "Get questions for a group",
-				"description": "Returns list of questions for the specified group",
+				"description": "Returns a paginated list of questions for the specified group. Can be filtered by tags.",
 				"operationId": "getGroupQuestions",
 				"parameters": [
 					{
@@ -222,31 +433,72 @@
 						"description": "ID of group",
 						"required": true,
 						"schema": {
-							"type": "string"
+							"type": "string",
+							"format": "uuid"
 						}
 					},
 					{
 						"name": "page",
 						"in": "query",
+						"description": "Page number for pagination",
+						"required": false,
 						"schema": {
 							"type": "integer",
-							"default": 1
+							"default": 1,
+							"minimum": 1
 						}
 					},
 					{
 						"name": "limit",
 						"in": "query",
+						"description": "Number of items per page",
+						"required": false,
 						"schema": {
 							"type": "integer",
-							"default": 20
+							"default": 10,
+							"minimum": 1,
+							"maximum": 50
 						}
 					},
 					{
 						"name": "tag",
 						"in": "query",
-						"description": "Filter by tag",
+						"description": "Filter questions by a specific tag",
+						"required": false,
 						"schema": {
 							"type": "string"
+						}
+					},
+					{
+						"name": "sortBy",
+						"in": "query",
+						"description": "Field to sort questions by (e.g., 'createdAt', 'upvotes', 'answerCount')",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["createdAt", "upvotes", "answerCount", "lastActivity"],
+							"default": "lastActivity"
+						}
+					},
+					{
+						"name": "sortOrder",
+						"in": "query",
+						"description": "Sort order ('asc' or 'desc')",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["asc", "desc"],
+							"default": "desc"
+						}
+					},
+					{
+						"name": "status",
+						"in": "query",
+						"description": "Filter questions by status",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["open", "answered", "closed"]
 						}
 					}
 				],
@@ -261,6 +513,12 @@
 										"total": {
 											"type": "integer"
 										},
+										"page": {
+											"type": "integer"
+										},
+										"limit": {
+											"type": "integer"
+										},
 										"questions": {
 											"type": "array",
 											"items": {
@@ -271,22 +529,33 @@
 								}
 							}
 						}
+					},
+					"404": {
+						"description": "Group not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					}
 				}
 			},
 			"post": {
 				"tags": ["questions"],
 				"summary": "Post a new question",
-				"description": "Add a new question to the group",
-				"operationId": "addQuestion",
+				"description": "Add a new question to the specified group. Requires temporary identity token for author attribution.",
+				"operationId": "addQuestionToGroup",
 				"parameters": [
 					{
 						"name": "groupId",
 						"in": "path",
-						"description": "ID of group",
+						"description": "ID of group to add question to",
 						"required": true,
 						"schema": {
-							"type": "string"
+							"type": "string",
+							"format": "uuid"
 						}
 					}
 				],
@@ -301,6 +570,7 @@
 						}
 					}
 				},
+				"security": [{ "TempIdentityAuth": [] }],
 				"responses": {
 					"201": {
 						"description": "Question created successfully",
@@ -308,6 +578,224 @@
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/Question"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized (missing or invalid temporary identity token)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Posting questions not allowed in this group (e.g., settings)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/questions/{questionId}": {
+			"get": {
+				"tags": ["questions"],
+				"summary": "Get question by ID",
+				"description": "Returns a single question by its ID.",
+				"operationId": "getQuestionById",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"description": "ID of question to return",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Question"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Question not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"tags": ["questions"],
+				"summary": "Update an existing question",
+				"description": "Update details of an existing question. Requires appropriate permissions (e.g., question author).",
+				"operationId": "updateQuestion",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"description": "ID of question to update",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Question object with fields to update",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/QuestionUpdate"
+							}
+						}
+					}
+				},
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Question updated successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Question"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied (not the author or insufficient privileges)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Question not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"tags": ["questions"],
+				"summary": "Delete a question",
+				"description": "Permanently delete a question. Requires appropriate permissions (e.g., question author or group admin).",
+				"operationId": "deleteQuestion",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"description": "ID of question to delete",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"204": {
+						"description": "Question deleted successfully"
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Question not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
 								}
 							}
 						}
@@ -319,14 +807,39 @@
 			"get": {
 				"tags": ["answers"],
 				"summary": "Get answers for a question",
+				"description": "Returns a list of answers for the specified question, ordered by creation time or votes.",
 				"operationId": "getQuestionAnswers",
 				"parameters": [
 					{
 						"name": "questionId",
 						"in": "path",
+						"description": "ID of question to get answers for",
 						"required": true,
 						"schema": {
-							"type": "string"
+							"type": "string",
+							"format": "uuid"
+						}
+					},
+					{
+						"name": "sortBy",
+						"in": "query",
+						"description": "Field to sort answers by (e.g., 'createdAt', 'upvotes')",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["createdAt", "upvotes"],
+							"default": "upvotes"
+						}
+					},
+					{
+						"name": "sortOrder",
+						"in": "query",
+						"description": "Sort order ('asc' or 'desc')",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["asc", "desc"],
+							"default": "desc"
 						}
 					}
 				],
@@ -343,20 +856,33 @@
 								}
 							}
 						}
+					},
+					"404": {
+						"description": "Question not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					}
 				}
 			},
 			"post": {
 				"tags": ["answers"],
 				"summary": "Post an answer to a question",
-				"operationId": "addAnswer",
+				"description": "Add a new answer to the specified question. Requires temporary identity token.",
+				"operationId": "addAnswerToQuestion",
 				"parameters": [
 					{
 						"name": "questionId",
 						"in": "path",
+						"description": "ID of question to answer",
 						"required": true,
 						"schema": {
-							"type": "string"
+							"type": "string",
+							"format": "uuid"
 						}
 					}
 				],
@@ -371,6 +897,7 @@
 						}
 					}
 				},
+				"security": [{ "TempIdentityAuth": [] }],
 				"responses": {
 					"201": {
 						"description": "Answer created successfully",
@@ -381,14 +908,296 @@
 								}
 							}
 						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Answering not allowed (e.g., question closed, group settings)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Question not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					}
 				}
 			}
 		},
-		"/media/upload": {
+		"/answers/{answerId}": {
+			"get": {
+				"tags": ["answers"],
+				"summary": "Get answer by ID",
+				"description": "Returns a single answer by its ID.",
+				"operationId": "getAnswerById",
+				"parameters": [
+					{
+						"name": "answerId",
+						"in": "path",
+						"description": "ID of answer to return",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Answer"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Answer not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"tags": ["answers"],
+				"summary": "Update an existing answer",
+				"description": "Update content of an existing answer. Requires appropriate permissions (e.g., answer author).",
+				"operationId": "updateAnswer",
+				"parameters": [
+					{
+						"name": "answerId",
+						"in": "path",
+						"description": "ID of answer to update",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Answer object with fields to update",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AnswerUpdate"
+							}
+						}
+					}
+				},
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Answer updated successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Answer"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Answer not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"tags": ["answers"],
+				"summary": "Delete an answer",
+				"description": "Permanently delete an answer. Requires appropriate permissions (e.g., answer author or group admin).",
+				"operationId": "deleteAnswer",
+				"parameters": [
+					{
+						"name": "answerId",
+						"in": "path",
+						"description": "ID of answer to delete",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"204": {
+						"description": "Answer deleted successfully"
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Answer not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/answers/{answerId}/accept": {
+			"post": {
+				"tags": ["answers"],
+				"summary": "Accept an answer",
+				"description": "Mark an answer as accepted for a question. Typically done by the question author or group admin.",
+				"operationId": "acceptAnswer",
+				"parameters": [
+					{
+						"name": "answerId",
+						"in": "path",
+						"description": "ID of the answer to accept",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Answer accepted successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Answer"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied (not question author or admin)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Answer or associated Question not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/media/upload-url": {
 			"post": {
 				"tags": ["media"],
 				"summary": "Get pre-signed URL for media upload",
+				"description": "Requests a pre-signed URL to upload a media file directly to cloud storage. The `mediaId` returned should be used when creating questions or answers with attachments.",
 				"operationId": "getMediaUploadUrl",
 				"requestBody": {
 					"description": "Media file information",
@@ -396,41 +1205,135 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"type": "object",
-								"properties": {
-									"fileName": {
-										"type": "string"
-									},
-									"fileType": {
-										"type": "string"
-									},
-									"fileSize": {
-										"type": "integer"
-									},
-									"groupId": {
-										"type": "string"
-									}
-								},
-								"required": ["fileName", "fileType", "fileSize", "groupId"]
+								"$ref": "#/components/schemas/MediaUploadRequest"
 							}
 						}
 					}
 				},
+				"security": [{ "TempIdentityAuth": [] }],
 				"responses": {
 					"200": {
-						"description": "Pre-signed URL generated",
+						"description": "Pre-signed URL generated successfully",
 						"content": {
 							"application/json": {
 								"schema": {
-									"type": "object",
-									"properties": {
-										"uploadUrl": {
-											"type": "string"
-										},
-										"mediaId": {
-											"type": "string"
-										}
-									}
+									"$ref": "#/components/schemas/MediaUploadResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input (e.g., file type not allowed, size too large)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/media/{mediaId}": {
+			"get": {
+				"tags": ["media"],
+				"summary": "Get media metadata",
+				"description": "Retrieves metadata for a specific media item.",
+				"operationId": "getMediaById",
+				"parameters": [
+					{
+						"name": "mediaId",
+						"in": "path",
+						"description": "ID of the media item",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Media"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Media not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"tags": ["media"],
+				"summary": "Delete media",
+				"description": "Deletes a media item. Requires appropriate permissions (e.g., uploader or admin).",
+				"operationId": "deleteMedia",
+				"parameters": [
+					{
+						"name": "mediaId",
+						"in": "path",
+						"description": "ID of the media item to delete",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"204": {
+						"description": "Media deleted successfully"
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Media not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
 								}
 							}
 						}
@@ -441,64 +1344,428 @@
 		"/identity/{groupId}": {
 			"post": {
 				"tags": ["identity"],
-				"summary": "Create or update temporary nickname",
-				"operationId": "createTempIdentity",
+				"summary": "Create or retrieve temporary identity for a group",
+				"description": "Allows a user to establish a temporary, anonymous (or named) identity within a specific group. If a nickname and password are provided and match an existing identity, that identity is retrieved. Otherwise, a new random anonymous identity is created, or a new named identity if a unique nickname is provided. Returns a token for subsequent authenticated actions within the group.",
+				"operationId": "createOrGetTempIdentity",
 				"parameters": [
 					{
 						"name": "groupId",
 						"in": "path",
+						"description": "ID of the group for which to create the identity",
 						"required": true,
 						"schema": {
-							"type": "string"
+							"type": "string",
+							"format": "uuid"
 						}
 					}
 				],
 				"requestBody": {
-					"description": "Temporary identity details",
-					"required": true,
+					"description": "Temporary identity details. All fields are optional. If no nickname is provided, a random anonymous one is generated.",
+					"required": false,
 					"content": {
 						"application/json": {
 							"schema": {
-								"type": "object",
-								"properties": {
-									"nickname": {
-										"type": "string"
-									},
-									"password": {
-										"type": "string",
-										"description": "Optional password to retain nickname"
-									}
-								},
-								"required": ["nickname"]
+								"$ref": "#/components/schemas/TemporaryIdentityRequest"
 							}
 						}
 					}
 				},
 				"responses": {
 					"200": {
-						"description": "Identity created or updated",
+						"description": "Identity created, updated, or retrieved successfully.",
 						"content": {
 							"application/json": {
 								"schema": {
-									"type": "object",
-									"properties": {
-										"nickname": {
-											"type": "string"
-										},
-										"groupId": {
-											"type": "string"
-										},
-										"token": {
-											"type": "string",
-											"description": "Session token for this identity"
-										}
-									}
+									"$ref": "#/components/schemas/TemporaryIdentityResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input (e.g. password provided without nickname, or invalid nickname format)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Incorrect password for existing nickname.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Nickname already taken"
+						"description": "Nickname already taken in this group (and no password or incorrect password provided).",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/groups/{groupId}/tags": {
+			"get": {
+				"tags": ["tags"],
+				"summary": "Get tags used in a group",
+				"description": "Returns a list of unique tags currently associated with questions within the specified group.",
+				"operationId": "getGroupTags",
+				"parameters": [
+					{
+						"name": "groupId",
+						"in": "path",
+						"description": "ID of the group",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful operation",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/Tag"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Group not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/questions/{questionId}/vote": {
+			"post": {
+				"tags": ["voting"],
+				"summary": "Vote on a question",
+				"description": "Allows a user to upvote or downvote a question. Sending the same vote type again may remove the vote (toggle). Requires temporary identity.",
+				"operationId": "voteQuestion",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"description": "ID of the question to vote on",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Vote type",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/VoteRequest"
+							}
+						}
+					}
+				},
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Vote registered successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Question"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid vote type",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Voting not allowed (e.g., group settings, user already voted)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Question not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/answers/{answerId}/vote": {
+			"post": {
+				"tags": ["voting"],
+				"summary": "Vote on an answer",
+				"description": "Allows a user to upvote or downvote an answer. Sending the same vote type again may remove the vote (toggle). Requires temporary identity.",
+				"operationId": "voteAnswer",
+				"parameters": [
+					{
+						"name": "answerId",
+						"in": "path",
+						"description": "ID of the answer to vote on",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"requestBody": {
+					"description": "Vote type",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/VoteRequest"
+							}
+						}
+					}
+				},
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Vote registered successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Answer"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid vote type",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Voting not allowed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Answer not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/ai/questions/{questionId}/generate-answer": {
+			"post": {
+				"tags": ["ai", "answers"],
+				"summary": "Generate AI-powered answer suggestion",
+				"description": "Requests an AI-generated answer for a specific question. This might be a privileged operation or rate-limited.",
+				"operationId": "generateAiAnswer",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"description": "ID of the question to generate an answer for",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"security": [{ "TempIdentityAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "AI-generated answer suggestion. This is not automatically posted; client should review and then use POST /questions/{questionId}/answers to submit it.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"questionId": { "type": "string", "format": "uuid" },
+										"suggestedContent": { "type": "string" },
+										"isAIGenerated": { "type": "boolean", "default": true }
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" }
+							}
+						}
+					},
+					"403": {
+						"description": "AI answer generation not allowed or rate limit exceeded",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" }
+							}
+						}
+					},
+					"404": {
+						"description": "Question not found",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" }
+							}
+						}
+					},
+					"500": {
+						"description": "AI service error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/ai/questions/{questionId}/similar": {
+			"get": {
+				"tags": ["ai", "questions"],
+				"summary": "Get similar questions",
+				"description": "Recommends questions similar to the given one, powered by AI.",
+				"operationId": "getSimilarQuestions",
+				"parameters": [
+					{
+						"name": "questionId",
+						"in": "path",
+						"description": "ID of the question to find similar ones for",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"description": "Maximum number of similar questions to return",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"default": 5,
+							"minimum": 1,
+							"maximum": 10
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "List of similar questions",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/Question"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Original question not found",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" }
+							}
+						}
+					},
+					"500": {
+						"description": "AI service error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" }
+							}
+						}
 					}
 				}
 			}
@@ -510,50 +1777,73 @@
 				"type": "object",
 				"properties": {
 					"id": {
-						"type": "string"
+						"type": "string",
+						"format": "uuid",
+						"description": "Unique identifier for the group."
 					},
 					"name": {
-						"type": "string"
+						"type": "string",
+						"description": "Name of the group."
 					},
 					"description": {
-						"type": "string"
+						"type": "string",
+						"nullable": true,
+						"description": "Detailed description of the group."
 					},
 					"isPublic": {
-						"type": "boolean"
+						"type": "boolean",
+						"description": "Indicates if the group is public or private."
+					},
+					"accessCode": {
+						"type": "string",
+						"nullable": true,
+						"description": "Access code for private groups (only returned to creator or on join)."
+					},
+					"qrCodeLink": {
+						"type": "string",
+						"format": "url",
+						"nullable": true,
+						"description": "URL to the QR code for joining the group (especially private ones)."
 					},
 					"createdAt": {
 						"type": "string",
-						"format": "date-time"
+						"format": "date-time",
+						"description": "Timestamp of when the group was created."
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "Timestamp of when the group was last updated."
 					},
 					"expiresAt": {
 						"type": "string",
-						"format": "date-time"
+						"format": "date-time",
+						"nullable": true,
+						"description": "Timestamp of when the group will expire and be auto-deleted (if set)."
 					},
 					"settings": {
-						"type": "object",
-						"properties": {
-							"allowVoting": {
-								"type": "boolean"
-							},
-							"allowAnonymousQuestions": {
-								"type": "boolean"
-							},
-							"allowTagging": {
-								"type": "boolean"
-							},
-							"moderationEnabled": {
-								"type": "boolean"
-							}
-						}
+						"$ref": "#/components/schemas/GroupSettings"
 					},
 					"tags": {
 						"type": "array",
 						"items": {
 							"type": "string"
-						}
+						},
+						"description": "List of suggested or prominent tags for this group."
 					},
 					"memberCount": {
-						"type": "integer"
+						"type": "integer",
+						"description": "Approximate number of members in the group (derived)."
+					},
+					"questionCount": {
+						"type": "integer",
+						"description": "Total number of questions in the group (derived)."
+					},
+					"lastActivityAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true,
+						"description": "Timestamp of the last activity (new question/answer) in the group."
 					}
 				}
 			},
@@ -561,179 +1851,343 @@
 				"type": "object",
 				"properties": {
 					"name": {
-						"type": "string"
+						"type": "string",
+						"minLength": 3,
+						"maxLength": 100
 					},
 					"description": {
-						"type": "string"
+						"type": "string",
+						"maxLength": 500,
+						"nullable": true
 					},
 					"isPublic": {
 						"type": "boolean",
 						"default": true
 					},
 					"settings": {
-						"type": "object",
-						"properties": {
-							"allowVoting": {
-								"type": "boolean",
-								"default": true
-							},
-							"allowAnonymousQuestions": {
-								"type": "boolean",
-								"default": true
-							},
-							"allowTagging": {
-								"type": "boolean",
-								"default": true
-							},
-							"moderationEnabled": {
-								"type": "boolean",
-								"default": false
-							}
-						}
+						"$ref": "#/components/schemas/GroupSettingsUpdate"
 					},
-					"expiresAfter": {
+					"expiresAfterDays": {
 						"type": "integer",
-						"description": "Expiration in days (0 = never)"
+						"minimum": 0,
+						"nullable": true,
+						"description": "Number of days after which the group will expire. 0 or null means it never expires."
 					}
 				},
 				"required": ["name"]
+			},
+			"GroupUpdate": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 3,
+						"maxLength": 100,
+						"nullable": true
+					},
+					"description": {
+						"type": "string",
+						"maxLength": 500,
+						"nullable": true
+					},
+					"isPublic": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"settings": {
+						"$ref": "#/components/schemas/GroupSettingsUpdate"
+					},
+					"expiresAfterDays": {
+						"type": "integer",
+						"minimum": 0,
+						"nullable": true,
+						"description": "Number of days from now after which the group will expire. 0 means remove expiration, null means no change."
+					}
+				}
+			},
+			"GroupSettings": {
+				"type": "object",
+				"properties": {
+					"allowVotingOnQuestions": {
+						"type": "boolean",
+						"default": true
+					},
+					"allowVotingOnAnswers": {
+						"type": "boolean",
+						"default": true
+					},
+					"allowAnonymousQuestions": {
+						"type": "boolean",
+						"default": true
+					},
+					"allowAnonymousAnswers": {
+						"type": "boolean",
+						"default": true
+					},
+					"allowTagging": {
+						"type": "boolean",
+						"default": true
+					},
+					"allowPolls": {
+						"type": "boolean",
+						"default": true
+					},
+					"allowMediaUploads": {
+						"type": "boolean",
+						"default": true
+					},
+					"moderationEnabled": {
+						"type": "boolean",
+						"default": false,
+						"description": "If true, new content might require approval."
+					},
+					"aiAnswerGenerationEnabled": {
+						"type": "boolean",
+						"default": true
+					},
+					"similarQuestionSuggestionsEnabled": {
+						"type": "boolean",
+						"default": true
+					}
+				}
+			},
+			"GroupSettingsUpdate": {
+				"type": "object",
+				"properties": {
+					"allowVotingOnQuestions": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"allowVotingOnAnswers": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"allowAnonymousQuestions": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"allowAnonymousAnswers": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"allowTagging": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"allowPolls": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"allowMediaUploads": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"moderationEnabled": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"aiAnswerGenerationEnabled": {
+						"type": "boolean",
+						"nullable": true
+					},
+					"similarQuestionSuggestionsEnabled": {
+						"type": "boolean",
+						"nullable": true
+					}
+				}
 			},
 			"Question": {
 				"type": "object",
 				"properties": {
 					"id": {
-						"type": "string"
+						"type": "string",
+						"format": "uuid"
 					},
 					"groupId": {
-						"type": "string"
+						"type": "string",
+						"format": "uuid"
+					},
+					"title": {
+						"type": "string",
+						"description": "The main title or summary of the question."
 					},
 					"content": {
-						"type": "string"
+						"type": "string",
+						"description": "Detailed content of the question."
 					},
 					"tags": {
 						"type": "array",
 						"items": {
 							"type": "string"
-						}
+						},
+						"description": "Tags associated with the question."
 					},
 					"status": {
 						"type": "string",
-						"enum": ["open", "answered", "closed"]
+						"enum": ["open", "answered", "closed"],
+						"description": "Current status of the question."
 					},
 					"createdAt": {
 						"type": "string",
 						"format": "date-time"
 					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastActivityAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "Timestamp of the last activity on this question (e.g. new answer, new vote)."
+					},
+					"authorId": {
+						"type": "string",
+						"description": "Identifier for the author (linked to temporary identity)."
+					},
 					"tempNickname": {
-						"type": "string"
+						"type": "string",
+						"description": "Temporary nickname of the author at the time of posting."
+					},
+					"isAnonymous": {
+						"type": "boolean",
+						"description": "Indicates if the question was posted by a fully anonymous (randomly generated) identity."
 					},
 					"upvotes": {
-						"type": "integer"
+						"type": "integer",
+						"default": 0
+					},
+					"downvotes": {
+						"type": "integer",
+						"default": 0
 					},
 					"views": {
-						"type": "integer"
+						"type": "integer",
+						"default": 0
+					},
+					"answerCount": {
+						"type": "integer",
+						"default": 0
 					},
 					"mediaAttachments": {
 						"type": "array",
 						"items": {
-							"type": "object",
-							"properties": {
-								"mediaId": {
-									"type": "string"
-								},
-								"url": {
-									"type": "string"
-								},
-								"thumbnailUrl": {
-									"type": "string"
-								},
-								"mimeType": {
-									"type": "string"
-								},
-								"displayOrder": {
-									"type": "integer"
-								}
-							}
+							"$ref": "#/components/schemas/MediaAttachment"
 						}
 					},
 					"poll": {
-						"type": "object",
-						"properties": {
-							"options": {
-								"type": "array",
-								"items": {
-									"type": "string"
-								}
-							},
-							"votes": {
-								"type": "array",
-								"items": {
-									"type": "object",
-									"properties": {
-										"option": {
-											"type": "integer"
-										},
-										"count": {
-											"type": "integer"
-										}
-									}
-								}
-							},
-							"allowMultiple": {
-								"type": "boolean"
-							}
-						}
+						"$ref": "#/components/schemas/Poll"
 					},
 					"aiSuggested": {
-						"type": "boolean"
+						"type": "boolean",
+						"default": false,
+						"description": "Indicates if this question was suggested or heavily assisted by AI."
+					},
+					"userVote": {
+						"type": "string",
+						"enum": ["up", "down", "none"],
+						"nullable": true,
+						"description": "The current user's vote on this question (if authenticated and voted)."
 					}
 				}
 			},
 			"QuestionCreate": {
 				"type": "object",
 				"properties": {
+					"title": {
+						"type": "string",
+						"minLength": 5,
+						"maxLength": 200
+					},
 					"content": {
-						"type": "string"
+						"type": "string",
+						"minLength": 10,
+						"maxLength": 5000
 					},
 					"tags": {
 						"type": "array",
 						"items": {
-							"type": "string"
-						}
+							"type": "string",
+							"pattern": "^[a-zA-Z0-9-]{1,30}$"
+						},
+						"maxItems": 10,
+						"nullable": true
 					},
 					"mediaIds": {
 						"type": "array",
 						"items": {
-							"type": "string"
+							"type": "string",
+							"format": "uuid"
 						},
-						"description": "IDs of previously uploaded media files"
+						"description": "IDs of previously uploaded media files to attach.",
+						"maxItems": 5,
+						"nullable": true
 					},
 					"poll": {
-						"type": "object",
-						"properties": {
-							"options": {
-								"type": "array",
-								"items": {
-									"type": "string"
-								}
-							},
-							"allowMultiple": {
-								"type": "boolean",
-								"default": false
-							}
-						}
+						"$ref": "#/components/schemas/PollCreate"
+					},
+					"isAnonymousOverride": {
+						"type": "boolean",
+						"nullable": true,
+						"description": "If true, forces a new random anonymous identity for this question, overriding any existing temporary nickname for this session."
 					}
 				},
-				"required": ["content"]
+				"required": ["title", "content"]
+			},
+			"QuestionUpdate": {
+				"type": "object",
+				"properties": {
+					"title": {
+						"type": "string",
+						"minLength": 5,
+						"maxLength": 200,
+						"nullable": true
+					},
+					"content": {
+						"type": "string",
+						"minLength": 10,
+						"maxLength": 5000,
+						"nullable": true
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"pattern": "^[a-zA-Z0-9-]{1,30}$"
+						},
+						"maxItems": 10,
+						"nullable": true
+					},
+					"status": {
+						"type": "string",
+						"enum": ["open", "closed"],
+						"nullable": true,
+						"description": "Can only be changed to 'open' or 'closed' by user. 'answered' is system-set."
+					},
+					"mediaIds": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"format": "uuid"
+						},
+						"maxItems": 5,
+						"nullable": true,
+						"description": "Full list of media IDs to be associated. Omissions will be treated as removals."
+					},
+					"poll": {
+						"$ref": "#/components/schemas/PollUpdate"
+					}
+				}
 			},
 			"Answer": {
 				"type": "object",
 				"properties": {
 					"id": {
-						"type": "string"
+						"type": "string",
+						"format": "uuid"
 					},
 					"questionId": {
-						"type": "string"
+						"type": "string",
+						"format": "uuid"
 					},
 					"content": {
 						"type": "string"
@@ -742,48 +2196,49 @@
 						"type": "string",
 						"format": "date-time"
 					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"authorId": {
+						"type": "string"
+					},
 					"tempNickname": {
 						"type": "string"
 					},
-					"reactions": {
-						"type": "object",
-						"properties": {
-							"likes": {
-								"type": "integer"
-							},
-							"dislikes": {
-								"type": "integer"
-							}
-						}
+					"isAnonymous": {
+						"type": "boolean",
+						"description": "Indicates if the answer was posted by a fully anonymous (randomly generated) identity."
+					},
+					"upvotes": {
+						"type": "integer",
+						"default": 0
+					},
+					"downvotes": {
+						"type": "integer",
+						"default": 0
 					},
 					"mediaAttachments": {
 						"type": "array",
 						"items": {
-							"type": "object",
-							"properties": {
-								"mediaId": {
-									"type": "string"
-								},
-								"url": {
-									"type": "string"
-								},
-								"thumbnailUrl": {
-									"type": "string"
-								},
-								"mimeType": {
-									"type": "string"
-								},
-								"displayOrder": {
-									"type": "integer"
-								}
-							}
+							"$ref": "#/components/schemas/MediaAttachment"
 						}
 					},
 					"isAccepted": {
-						"type": "boolean"
+						"type": "boolean",
+						"default": false,
+						"description": "True if this answer is marked as the accepted answer for the question."
 					},
 					"isAIGenerated": {
-						"type": "boolean"
+						"type": "boolean",
+						"default": false,
+						"description": "True if this answer was generated by AI."
+					},
+					"userVote": {
+						"type": "string",
+						"enum": ["up", "down", "none"],
+						"nullable": true,
+						"description": "The current user's vote on this answer (if authenticated and voted)."
 					}
 				}
 			},
@@ -791,16 +2246,363 @@
 				"type": "object",
 				"properties": {
 					"content": {
-						"type": "string"
+						"type": "string",
+						"minLength": 10,
+						"maxLength": 10000
 					},
 					"mediaIds": {
 						"type": "array",
 						"items": {
-							"type": "string"
-						}
+							"type": "string",
+							"format": "uuid"
+						},
+						"maxItems": 5,
+						"nullable": true
+					},
+					"isAIGenerated": {
+						"type": "boolean",
+						"default": false,
+						"description": "Client should set this to true if submitting an AI-generated suggestion."
+					},
+					"isAnonymousOverride": {
+						"type": "boolean",
+						"nullable": true,
+						"description": "If true, forces a new random anonymous identity for this answer."
 					}
 				},
 				"required": ["content"]
+			},
+			"AnswerUpdate": {
+				"type": "object",
+				"properties": {
+					"content": {
+						"type": "string",
+						"minLength": 10,
+						"maxLength": 10000,
+						"nullable": true
+					},
+					"mediaIds": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"format": "uuid"
+						},
+						"maxItems": 5,
+						"nullable": true
+					}
+				}
+			},
+			"MediaAttachment": {
+				"type": "object",
+				"properties": {
+					"mediaId": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"url": {
+						"type": "string",
+						"format": "url",
+						"description": "Direct URL to the media file."
+					},
+					"thumbnailUrl": {
+						"type": "string",
+						"format": "url",
+						"nullable": true,
+						"description": "URL to a thumbnail image for the media (if applicable)."
+					},
+					"fileName": {
+						"type": "string",
+						"description": "Original name of the uploaded file."
+					},
+					"mimeType": {
+						"type": "string",
+						"description": "MIME type of the media (e.g., 'image/jpeg', 'video/mp4')."
+					},
+					"fileSize": {
+						"type": "integer",
+						"description": "Size of the file in bytes."
+					},
+					"displayOrder": {
+						"type": "integer",
+						"nullable": true,
+						"description": "Order in which to display multiple attachments."
+					}
+				}
+			},
+			"MediaUploadRequest": {
+				"type": "object",
+				"properties": {
+					"fileName": {
+						"type": "string",
+						"description": "Name of the file to be uploaded."
+					},
+					"fileType": {
+						"type": "string",
+						"description": "MIME type of the file (e.g., 'image/png', 'video/mp4')."
+					},
+					"fileSize": {
+						"type": "integer",
+						"description": "Size of the file in bytes."
+					},
+					"groupId": {
+						"type": "string",
+						"format": "uuid",
+						"description": "ID of the group this media is associated with (for scoping and permissions)."
+					}
+				},
+				"required": ["fileName", "fileType", "fileSize", "groupId"]
+			},
+			"MediaUploadResponse": {
+				"type": "object",
+				"properties": {
+					"uploadUrl": {
+						"type": "string",
+						"format": "url",
+						"description": "Pre-signed URL to use for PUTting the file."
+					},
+					"mediaId": {
+						"type": "string",
+						"format": "uuid",
+						"description": "Unique ID assigned to this media item upon successful upload request."
+					}
+				}
+			},
+			"Media": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"groupId": {
+						"type": "string",
+						"format": "uuid",
+						"description": "Group context this media belongs to."
+					},
+					"uploaderId": {
+						"type": "string",
+						"description": "Identifier of the temporary identity that uploaded the media."
+					},
+					"url": {
+						"type": "string",
+						"format": "url"
+					},
+					"thumbnailUrl": {
+						"type": "string",
+						"format": "url",
+						"nullable": true
+					},
+					"fileName": {
+						"type": "string"
+					},
+					"mimeType": {
+						"type": "string"
+					},
+					"fileSize": {
+						"type": "integer"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"Poll": {
+				"type": "object",
+				"properties": {
+					"options": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PollOption"
+						}
+					},
+					"allowMultipleVotes": {
+						"type": "boolean",
+						"default": false
+					},
+					"totalVotes": {
+						"type": "integer",
+						"default": 0
+					},
+					"userVotedOptions": {
+						"type": "array",
+						"items": { "type": "integer" },
+						"nullable": true,
+						"description": "Array of option indices the current user has voted for."
+					},
+					"closesAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true,
+						"description": "Timestamp when the poll closes automatically."
+					}
+				}
+			},
+			"PollOption": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "integer",
+						"description": "Index of the option (0-based)."
+					},
+					"text": {
+						"type": "string",
+						"description": "Text content of the poll option."
+					},
+					"voteCount": {
+						"type": "integer",
+						"default": 0,
+						"description": "Number of votes this option has received."
+					}
+				}
+			},
+			"PollCreate": {
+				"type": "object",
+				"properties": {
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 100
+						},
+						"minItems": 2,
+						"maxItems": 10
+					},
+					"allowMultipleVotes": {
+						"type": "boolean",
+						"default": false
+					},
+					"durationDays": {
+						"type": "integer",
+						"minimum": 0,
+						"nullable": true,
+						"description": "Poll duration in days. 0 or null for no expiry."
+					}
+				},
+				"required": ["options"]
+			},
+			"PollUpdate": {
+				"type": "object",
+				"description": "Currently, polls cannot be structurally updated after creation, only closed. Future versions might allow adding options or changing duration if not yet started.",
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": ["open", "closed"],
+						"nullable": true,
+						"description": "Set to 'closed' to manually close the poll."
+					}
+				}
+			},
+			"Tag": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "The tag name."
+					},
+					"questionCount": {
+						"type": "integer",
+						"description": "Number of questions in the current context (e.g., group) using this tag."
+					}
+				}
+			},
+			"TemporaryIdentityRequest": {
+				"type": "object",
+				"properties": {
+					"nickname": {
+						"type": "string",
+						"minLength": 3,
+						"maxLength": 30,
+						"pattern": "^[a-zA-Z0-9_\\-]+$",
+						"nullable": true,
+						"description": "Desired nickname. If null, a random anonymous identity is generated. Must be unique within the group if provided."
+					},
+					"password": {
+						"type": "string",
+						"minLength": 6,
+						"nullable": true,
+						"description": "Optional password to reclaim or secure a specific nickname. Only used if nickname is also provided."
+					}
+				}
+			},
+			"TemporaryIdentityResponse": {
+				"type": "object",
+				"properties": {
+					"groupId": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"authorId": {
+						"type": "string",
+						"description": "The unique identifier for this temporary identity session."
+					},
+					"nickname": {
+						"type": "string",
+						"description": "The assigned nickname (could be the one requested or a random one if anonymous)."
+					},
+					"isAnonymous": {
+						"type": "boolean",
+						"description": "True if the nickname was randomly generated and is not persistent."
+					},
+					"token": {
+						"type": "string",
+						"description": "Session token (e.g., JWT) to be used in Authorization header for subsequent requests within this group."
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "Token expiration time."
+					}
+				}
+			},
+			"VoteRequest": {
+				"type": "object",
+				"properties": {
+					"voteType": {
+						"type": "string",
+						"enum": ["up", "down", "none"],
+						"description": "'up' for upvote, 'down' for downvote, 'none' to remove existing vote."
+					}
+				},
+				"required": ["voteType"]
+			},
+			"ErrorResponse": {
+				"type": "object",
+				"properties": {
+					"statusCode": {
+						"type": "integer",
+						"description": "HTTP status code."
+					},
+					"message": {
+						"type": "string",
+						"description": "A human-readable error message."
+					},
+					"errorCode": {
+						"type": "string",
+						"nullable": true,
+						"description": "A more specific application error code."
+					},
+					"details": {
+						"type": "object",
+						"additionalProperties": true,
+						"nullable": true,
+						"description": "Additional details about the error, e.g. validation errors."
+					}
+				},
+				"required": ["statusCode", "message"]
+			}
+		},
+		"securitySchemes": {
+			"TempIdentityAuth": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "JWT",
+				"description": "Temporary identity token obtained via `/identity/{groupId}` endpoint, required for posting content or voting."
 			}
 		}
 	}
