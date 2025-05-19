@@ -305,7 +305,7 @@ export const SimilarQuestionsResponseSchema = z.array(QuestionSchema);
 
 // --- Group Join Schema ---
 export const GroupJoinRequestSchema = z.object({
-	accessCode: z.string(),
+	accessCode: z.string().min(1), // Access code should not be empty
 });
 // Response for join would be GroupSchema
 

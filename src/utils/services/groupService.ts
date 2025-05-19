@@ -4,7 +4,8 @@ import {
 	GroupSchema,
 	GetPublicGroupsQuerySchema,
 	PaginatedPublicGroupsResponseSchema,
-	GroupSettingsSchema, // For default settings
+	GroupSettingsSchema,
+	GroupJoinRequestSchema, // For default settings
 } from "@/utils/schema";
 import {
 	groupRepository,
@@ -103,6 +104,27 @@ export class GroupService {
 	async getGroupById(id: string): Promise<z.infer<typeof GroupSchema> | null> {
 		// Later, this service method might check permissions for private groups
 		return groupRepository.findById(id);
+	}
+
+	async joinGroup(
+		accessCode: string,
+		userTempId: string // The temporary ID of the user trying to join
+	): Promise<z.infer<typeof GroupSchema> | null> {
+		const group = await groupRepository.findByAccessCode(accessCode);
+
+		if (!group) {
+			return null; // Group not found with this access code
+		}
+
+		// At this point, the user has successfully "joined" by providing the correct code.
+		// Future enhancements:
+		// - Log this join event.
+		// - If groups have explicit member lists: groupRepository.addMember(group.id, userTempId);
+		// - Update group.memberCount if actively tracking distinct joiners (more complex).
+
+		// For now, successfully finding the group by access code is sufficient to grant access.
+		// The group object returned already includes necessary details thanks to mapDocumentToGroupSchema.
+		return group;
 	}
 }
 

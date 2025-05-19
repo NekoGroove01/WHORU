@@ -36,16 +36,20 @@ export type GroupInsertData = Omit<
 };
 
 // Helper to map MongoDB document to our API schema type (z.infer<typeof GroupSchema>)
-// This converts Date objects to ISO strings as defined in GroupSchema
+// Ensure this helper is flexible about returning accessCode.
+// For the user joining via access code, it's fine to return it.
+// For public listings or other contexts, it might be omitted for private groups.
 const mapDocumentToGroupSchema = (
-	doc: GroupDocument
+	doc: GroupDocument,
+	includeAccessCode: boolean = false
 ): z.infer<typeof GroupSchema> => {
 	return {
 		id: doc.id,
 		name: doc.name,
 		description: doc.description,
 		isPublic: doc.isPublic,
-		accessCode: doc.accessCode, // Only return if contextually appropriate (e.g., to creator)
+		// Conditionally include accessCode
+		accessCode: includeAccessCode || doc.isPublic ? doc.accessCode : undefined,
 		qrCodeLink: doc.qrCodeLink,
 		createdAt: doc.createdAt.toISOString(),
 		updatedAt: doc.updatedAt.toISOString(),
@@ -54,11 +58,8 @@ const mapDocumentToGroupSchema = (
 		memberCount: doc.memberCount,
 		questionCount: doc.questionCount,
 		lastActivityAt: doc.lastActivityAt.toISOString(),
-		// We might not always want to expose creatorTempId in the API response
-		// For now, GroupSchema does not include it, so we omit it here.
 	};
 };
-
 export class GroupRepository {
 	private async getCollection(): Promise<Collection<GroupDocument>> {
 		const { db } = await connectToDatabase();
@@ -76,15 +77,19 @@ export class GroupRepository {
 		if (!newGroupDoc) {
 			throw new Error("Failed to create or retrieve group after insertion.");
 		}
-		return mapDocumentToGroupSchema(newGroupDoc);
+		return mapDocumentToGroupSchema(newGroupDoc, true); // Pass true to include accessCode
 	}
 
+	// find by group id
 	async findById(id: string): Promise<z.infer<typeof GroupSchema> | null> {
 		const collection = await this.getCollection();
 		const groupDoc = await collection.findOne({ id: id }); // Query by our nanoid 'id'
-		return groupDoc ? mapDocumentToGroupSchema(groupDoc) : null;
+		return groupDoc
+			? mapDocumentToGroupSchema(groupDoc, groupDoc.isPublic)
+			: null;
 	}
 
+	// find all groups with pagination and sorting
 	async findAllPublic(
 		page: number,
 		limit: number,
@@ -103,7 +108,7 @@ export class GroupRepository {
 			.limit(limit)
 			.toArray();
 
-		return groupDocs.map(mapDocumentToGroupSchema);
+		return groupDocs.map((doc) => mapDocumentToGroupSchema(doc, true)); // Pass true to include accessCode
 	}
 
 	async countAllPublic(): Promise<number> {
@@ -111,7 +116,15 @@ export class GroupRepository {
 		return collection.countDocuments({ isPublic: true });
 	}
 
-	// Add other methods like update, delete, findByAccessCode etc. as needed
+	// Find a group by its access code
+	async findByAccessCode(
+		accessCode: string
+	): Promise<z.infer<typeof GroupSchema> | null> {
+		const collection = await this.getCollection();
+		const groupDoc = await collection.findOne({ accessCode: accessCode });
+		// If found by access code, the user provided it, so it's okay to return the full details including the access code itself.
+		return groupDoc ? mapDocumentToGroupSchema(groupDoc, true) : null;
+	}
 }
 
 export const groupRepository = new GroupRepository();
