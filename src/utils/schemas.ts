@@ -28,7 +28,20 @@ export const NicknameSchema = z
 	.min(2, "Nickname too short")
 	.max(30, "Nickname too long");
 
+// -------------------------------
+// --- Pagination Query Schema ---
+// -------------------------------
+export const PaginationQuerySchema = z.object({
+	page: z.coerce.number().int().min(1).optional().default(1),
+	limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+	sortBy: z.string().optional(), // Specific sort fields can be validated per endpoint
+	sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+});
+export type PaginationQueryInput = z.infer<typeof PaginationQuerySchema>;
+
+// ---------------------
 // --- Group Schemas ---
+// ---------------------
 export const GroupBaseSchema = z.object({
 	name: z
 		.string()
@@ -64,7 +77,9 @@ export const JoinGroupSchema = z.object({
 });
 export type JoinGroupInput = z.infer<typeof JoinGroupSchema>;
 
+// ------------------------
 // --- Question Schemas ---
+// ------------------------
 export const QuestionBaseSchema = z.object({
 	title: z
 		.string()
@@ -81,8 +96,7 @@ export const QuestionBaseSchema = z.object({
 
 export const CreateQuestionSchema = QuestionBaseSchema.extend({
 	groupId: MongoIdSchema,
-	// Optional: if questions have individual management passwords
-	// managementPassword: PasswordSchema.optional(),
+	managementPassword: PasswordSchema.optional(), // Password for managing this specific question
 });
 export type CreateQuestionInput = z.infer<typeof CreateQuestionSchema>;
 
@@ -90,19 +104,43 @@ export const UpdateQuestionSchema = z.object({
 	title: z.string().min(5).max(200).optional().nullable(),
 	content: z.string().min(10).max(5000).optional(),
 	tags: TagsArraySchema.optional(),
-	// Optional: if questions have individual management passwords and need it for update
-	// managementPassword: PasswordSchema.optional(),
+	// managementPassword is not part of update payload itself, but required for authorization
 });
 export type UpdateQuestionInput = z.infer<typeof UpdateQuestionSchema>;
 
+// Schema for authenticating question management actions
+export const QuestionManagementAuthSchema = z.object({
+	managementPassword: PasswordSchema,
+});
+export type QuestionManagementAuthInput = z.infer<
+	typeof QuestionManagementAuthSchema
+>;
+
 export const AcceptAnswerSchema = z.object({
 	answerId: MongoIdSchema,
-	// Optional: password for the question or group admin auth token
-	// managementPassword: PasswordSchema.optional(),
+	// managementPassword for the question is required to accept an answer
 });
 export type AcceptAnswerInput = z.infer<typeof AcceptAnswerSchema>;
 
+// --- Pagination Query Schema for Questions ---
+export const QuestionPaginationQuerySchema = PaginationQuerySchema.extend({
+	tags: z.string().optional(), // Comma-separated tags for filtering
+	filter: z
+		.enum(["all", "unanswered", "answered", "mine", "popular", "recent"])
+		.optional()
+		.default("all"), // Add other filters as needed
+	// 'mine' filter would require some author identifier, which is currently just nickname.
+	// For 'mine' to work robustly, a session-based temporary ID might be needed.
+	// 'popular' would sort by upvotes or views.
+	// 'recent' is default sortBy createdAt.
+});
+export type QuestionPaginationQueryInput = z.infer<
+	typeof QuestionPaginationQuerySchema
+>;
+
+// ----------------------
 // --- Answer Schemas ---
+// ----------------------
 export const AnswerBaseSchema = z.object({
 	content: z
 		.string()
@@ -113,24 +151,30 @@ export const AnswerBaseSchema = z.object({
 
 export const CreateAnswerSchema = AnswerBaseSchema.extend({
 	questionId: MongoIdSchema,
-	// Optional: if answers have individual management passwords
-	// managementPassword: PasswordSchema.optional(),
+	managementPassword: PasswordSchema.optional(), // User can optionally set a password for their answer
 });
 export type CreateAnswerInput = z.infer<typeof CreateAnswerSchema>;
 
 export const UpdateAnswerSchema = z.object({
-	content: z.string().min(5).max(5000).optional(),
-	// Optional: if answers have individual management passwords and need it for update
-	// managementPassword: PasswordSchema.optional(),
+	content: z.string().min(5).max(5000), // Content is required for an update
+	managementPassword: PasswordSchema.optional(), // Required if the answer was password-protected
 });
 export type UpdateAnswerInput = z.infer<typeof UpdateAnswerSchema>;
 
+// Schema for operations requiring password if answer is protected
+export const ManageAnswerSchema = z.object({
+	managementPassword: PasswordSchema.optional(),
+});
+export type ManageAnswerInput = z.infer<typeof ManageAnswerSchema>;
+
 export const VoteSchema = z.object({
-	voteType: z.enum(["up", "down"]),
+	voteType: z.enum(["up"]), // Simplified to only "up" as per previous discussion
 });
 export type VoteInput = z.infer<typeof VoteSchema>;
 
+// ------------------
 // --- AI Schemas ---
+// ------------------
 export const SimilarQuestionsSchema = z.object({
 	currentQuestionContent: z
 		.string()
@@ -154,12 +198,3 @@ export const GenerateAnswerSchema = z.object({
 	questionId: MongoIdSchema,
 });
 export type GenerateAnswerInput = z.infer<typeof GenerateAnswerSchema>;
-
-// --- Pagination Query Schema ---
-export const PaginationQuerySchema = z.object({
-	page: z.coerce.number().int().min(1).optional().default(1),
-	limit: z.coerce.number().int().min(1).max(100).optional().default(10),
-	sortBy: z.string().optional(), // Specific sort fields can be validated per endpoint
-	sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
-});
-export type PaginationQueryInput = z.infer<typeof PaginationQuerySchema>;

@@ -1,99 +1,171 @@
 // src/app/api/groups/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { groupService } from "@/utils/services/groupService";
-import {
-	GroupCreateSchema,
-	GetPublicGroupsQuerySchema,
-	ErrorResponseSchema,
-} from "@/utils/schema";
-import { z, ZodError } from "zod";
+import { NextResponse, type NextRequest } from "next/server";
+import bcrypt from "bcrypt";
+import { nanoid } from "nanoid";
+import { connectToDatabase } from "@/utils/mongodb";
+import { CreateGroupSchema, PaginationQuerySchema } from "@/utils/schemas";
+import type { Group } from "@/types/group";
+import type { DbGroup } from "@/types/schemas/group";
 
-// Placeholder for getting temporary identity from request (e.g., from a JWT middleware)
-// In a real app, this would be populated by an authentication middleware.
-async function getTemporaryIdFromRequest(
-	req: NextRequest
-): Promise<string | null> {
-	// Example: const token = req.headers.get('Authorization')?.split(' ')[1];
-	// If token, decode and get tempId. For now, returning a mock or null.
-	// For POST, we need a creatorId. Let's assume it's 'mock-creator-temp-id' for now.
-	// This part needs to be implemented with your actual TempIdentity auth flow.
-	if (req.method === "POST") {
-		return "mock-creator-temp-id"; // Replace with actual logic
-	}
-	return null;
+const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS ?? "16", 16);
+
+// Helper to map DB document to frontend Group type
+// For list view, accessKey for private groups should not be exposed
+function mapDbGroupToGroupListItem(dbGroup: DbGroup): Omit<Group, "accessKey"> {
+	return {
+		id: dbGroup._id.toHexString(),
+		name: dbGroup.name,
+		description: dbGroup.description ?? null,
+		isPublic: dbGroup.isPublic,
+		tags: dbGroup?.tags ?? [],
+		questionCount: dbGroup.questionCount,
+		lastActivityAt: dbGroup.lastActivityAt.toISOString(),
+		createdAt: dbGroup.createdAt.toISOString(),
+		updatedAt: dbGroup.updatedAt.toISOString(),
+	};
 }
 
-export async function POST(req: NextRequest) {
+function mapDbGroupToGroupDetail(dbGroup: DbGroup): Group {
+	return {
+		id: dbGroup._id.toHexString(),
+		name: dbGroup.name,
+		description: dbGroup.description ?? null,
+		isPublic: dbGroup.isPublic,
+		// Only include accessKey if the group is private; public groups don't need/use it in this context
+		accessKey: dbGroup.isPublic ? undefined : dbGroup.accessKey,
+		tags: dbGroup.tags ?? [],
+		questionCount: dbGroup.questionCount,
+		lastActivityAt: dbGroup.lastActivityAt.toISOString(),
+		createdAt: dbGroup.createdAt.toISOString(),
+		updatedAt: dbGroup.updatedAt.toISOString(),
+	};
+}
+
+export async function POST(request: NextRequest) {
 	try {
-		const creatorTempId = await getTemporaryIdFromRequest(req);
-		if (!creatorTempId) {
-			// This should ideally be handled by an auth middleware before reaching here
+		const body = await request.json();
+		const validationResult = CreateGroupSchema.safeParse(body);
+
+		if (!validationResult.success) {
 			return NextResponse.json(
 				{
-					statusCode: 401,
-					message: "Unauthorized: Missing temporary identity for creator.",
-				} as z.infer<typeof ErrorResponseSchema>,
-				{ status: 401 }
-			);
-		}
-
-		const body = await req.json();
-		const validatedData = GroupCreateSchema.parse(body);
-
-		const newGroup = await groupService.createGroup(
-			validatedData,
-			creatorTempId
-		);
-
-		return NextResponse.json(newGroup, { status: 201 });
-	} catch (error) {
-		if (error instanceof ZodError) {
-			return NextResponse.json(
-				{
-					statusCode: 400,
-					message: "Validation failed",
-					details: error.flatten(),
-				} as z.infer<typeof ErrorResponseSchema>,
+					message: "Invalid input",
+					errors: validationResult.error.flatten().fieldErrors,
+				},
 				{ status: 400 }
 			);
 		}
-		console.error("Error creating group:", error);
+
+		const { name, description, isPublic, managementPassword, tags } =
+			validationResult.data;
+
+		const { db } = await connectToDatabase();
+
+		const managementPasswordHash = await bcrypt.hash(
+			managementPassword,
+			BCRYPT_SALT_ROUNDS
+		);
+
+		const now = new Date();
+		const newGroup: Omit<DbGroup, "_id"> = {
+			name,
+			description: description ?? undefined, // Store as undefined if null/empty
+			isPublic: isPublic ?? true,
+			accessKey: isPublic ? undefined : nanoid(8), // Generate accessKey only for private groups
+			managementPasswordHash,
+			tags: tags ?? [],
+			questionCount: 0,
+			lastActivityAt: now,
+			createdAt: now,
+			updatedAt: now,
+		};
+
+		const result = await db
+			.collection<Omit<DbGroup, "_id">>("groups")
+			.insertOne(newGroup);
+
+		if (!result.insertedId) {
+			return NextResponse.json(
+				{ message: "Failed to create group" },
+				{ status: 500 }
+			);
+		}
+
+		const createdGroup = {
+			_id: result.insertedId,
+			...newGroup,
+		} as DbGroup;
+
 		return NextResponse.json(
-			{ statusCode: 500, message: "Internal server error" } as z.infer<
-				typeof ErrorResponseSchema
-			>,
+			{ group: mapDbGroupToGroupDetail(createdGroup) },
+			{ status: 201 }
+		);
+	} catch (error) {
+		console.error("Failed to create group:", error);
+		return NextResponse.json(
+			{ message: "Internal server error" },
 			{ status: 500 }
 		);
 	}
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
 	try {
-		const { searchParams } = new URL(req.url);
+		const { searchParams } = request.nextUrl;
 		const queryParams = Object.fromEntries(searchParams.entries());
+		const validationResult = PaginationQuerySchema.safeParse(queryParams);
 
-		// Validate query parameters
-		const validatedQuery = GetPublicGroupsQuerySchema.parse(queryParams);
-
-		const paginatedGroups = await groupService.getPublicGroups(validatedQuery);
-
-		return NextResponse.json(paginatedGroups, { status: 200 });
-	} catch (error) {
-		if (error instanceof ZodError) {
+		if (!validationResult.success) {
 			return NextResponse.json(
 				{
-					statusCode: 400,
 					message: "Invalid query parameters",
-					details: error.flatten(),
-				} as z.infer<typeof ErrorResponseSchema>,
+					errors: validationResult.error.flatten().fieldErrors,
+				},
 				{ status: 400 }
 			);
 		}
-		console.error("Error fetching public groups:", error);
+
+		const {
+			page,
+			limit,
+			sortBy = "lastActivityAt",
+			sortOrder = "desc",
+		} = validationResult.data;
+
+		const { db } = await connectToDatabase();
+		const skip = (page - 1) * limit;
+
+		const sortOptions: { [key: string]: 1 | -1 } = {};
+		if (sortBy) {
+			sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
+		}
+
+		const groupsCollection = db.collection<DbGroup>("groups");
+		const totalGroups = await groupsCollection.countDocuments({
+			isPublic: true,
+		});
+		const dbGroups = await groupsCollection
+			.find({ isPublic: true })
+			.sort(sortOptions)
+			.skip(skip)
+			.limit(limit)
+			.toArray();
+
+		const groups = dbGroups.map(mapDbGroupToGroupListItem);
+
 		return NextResponse.json(
-			{ statusCode: 500, message: "Internal server error" } as z.infer<
-				typeof ErrorResponseSchema
-			>,
+			{
+				groups,
+				totalPages: Math.ceil(totalGroups / limit),
+				currentPage: page,
+				totalGroups,
+			},
+			{ status: 200 }
+		);
+	} catch (error) {
+		console.error("Failed to fetch groups:", error);
+		return NextResponse.json(
+			{ message: "Internal server error" },
 			{ status: 500 }
 		);
 	}

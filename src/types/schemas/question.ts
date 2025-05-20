@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 
-interface Question {
+export interface DbQuestion {
   _id: ObjectId;
   groupId: ObjectId; // Reference to Group._id
   title?: string; // Optional, content might be enough
@@ -16,7 +16,6 @@ interface Question {
   isAnswered: boolean; // Default: false (true if an answer is accepted)
   isResolvedByAsker?: boolean; // Default: false
   upvotes: number; // Default: 0
-  downvotes: number; // Default: 0 (Consider if needed, or just upvotes)
   views: number; // Default: 0
   createdAt: Date;
   updatedAt: Date;

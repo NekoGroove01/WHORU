@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 
 // src/types/answer.ts (ensure this matches or update it)
-interface Answer {
+export interface DbAnswer {
 	_id: ObjectId;
 	questionId: ObjectId; // Reference to Question._id
 	groupId: ObjectId; // Reference to Group._id (for context/scoping)
@@ -13,7 +13,6 @@ interface Answer {
 	// Option B: Managed by group admin or question asker
 	// Option C: Temporary edit token
 	upvotes: number; // Default: 0
-	downvotes: number; // Default: 0
 	isAccepted: boolean; // Default: false (set by question asker/group admin)
 	createdAt: Date;
 	updatedAt: Date;

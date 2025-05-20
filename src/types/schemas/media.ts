@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 
-interface Media {
+export interface Media {
 	_id: ObjectId;
 	fileName: string;
 	fileType: string; // MIME type

@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 
-interface AIUsageLog {
+export interface AIUsageLog {
 	_id: ObjectId;
 	identityType: "session" | "group"; // How the user/group is identified
 	identifier: string; // Session ID, IP hash, or Group ID
