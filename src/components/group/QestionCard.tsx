@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { Question } from "@/types/question";
 import { useQuestionStore } from "@/store/questionStore";
+import { RiThumbUpLine } from "react-icons/ri";
 
 type QuestionCardProps = {
 	question: Question;
@@ -19,19 +20,15 @@ type QuestionCardProps = {
 export default function QuestionCard({
 	question,
 }: Readonly<QuestionCardProps>) {
-	const [hasVoted, setHasVoted] = useState<"up" | "down" | null>(null);
-	const { upvoteQuestion, downvoteQuestion } = useQuestionStore();
+	const [hasVoted, setHasVoted] = useState<boolean>(false);
+	const { upvoteQuestion } = useQuestionStore();
 
-	const handleVote = (voteType: "up" | "down") => {
-		if (hasVoted === voteType) return;
+	const handleVote = () => {
+		if (hasVoted) return;
 
-		if (voteType === "up") {
-			upvoteQuestion(question.id, hasVoted);
-		} else {
-			downvoteQuestion(question.id, hasVoted);
-		}
+		upvoteQuestion(question.id);
 
-		setHasVoted(voteType);
+		setHasVoted(true);
 	};
 
 	const formattedDate = new Date(question.createdAt).toLocaleDateString(
@@ -49,33 +46,18 @@ export default function QuestionCard({
 				<div className="flex flex-col items-center mr-4">
 					<motion.button
 						whileTap={{ scale: 0.95 }}
-						onClick={() => handleVote("up")}
+						onClick={() => handleVote()}
 						className={`p-2 rounded-full ${
-							hasVoted === "up"
+							hasVoted
 								? "text-primary dark:text-primary-light bg-blue-50 dark:bg-blue-900/30"
 								: "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
 						}`}
 						aria-label="Upvote"
 					>
-						<FaChevronUp />
+						<RiThumbUpLine />
 					</motion.button>
 
-					<span className="text-lg font-semibold my-1">
-						{question.upvotes - question.downvotes}
-					</span>
-
-					<motion.button
-						whileTap={{ scale: 0.95 }}
-						onClick={() => handleVote("down")}
-						className={`p-2 rounded-full ${
-							hasVoted === "down"
-								? "text-red-500 bg-red-50 dark:bg-red-900/30"
-								: "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-						}`}
-						aria-label="Downvote"
-					>
-						<FaChevronDown />
-					</motion.button>
+					<span className="text-lg font-semibold my-1">{question.upvotes}</span>
 				</div>
 
 				{/* Question content */}
@@ -112,7 +94,7 @@ export default function QuestionCard({
 						</div>
 
 						<span className="text-gray-500 dark:text-gray-400">
-							{question.authorName}
+							{question.authorNickname}
 						</span>
 					</div>
 				</div>

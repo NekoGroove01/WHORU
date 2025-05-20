@@ -22,20 +22,15 @@ type QuestionHeaderProps = {
 export default function QuestionHeader({
 	question,
 }: Readonly<QuestionHeaderProps>) {
-	const [hasVoted, setHasVoted] = useState<"up" | "down" | null>(null);
+	const [hasVoted, setHasVoted] = useState<boolean>(false);
 	const [showActions, setShowActions] = useState(false);
-	const { upvoteQuestion, downvoteQuestion } = useQuestionStore();
+	const { upvoteQuestion } = useQuestionStore();
 
-	const handleVote = (voteType: "up" | "down") => {
-		if (hasVoted === voteType) return;
+	const handleVote = () => {
+		if (hasVoted) return;
 
-		if (voteType === "up") {
-			upvoteQuestion(question.id, hasVoted);
-		} else {
-			downvoteQuestion(question.id, hasVoted);
-		}
-
-		setHasVoted(voteType);
+		upvoteQuestion(question.id);
+		setHasVoted(true);
 	};
 
 	return (
@@ -54,9 +49,9 @@ export default function QuestionHeader({
 					<div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1">
 						<motion.button
 							whileTap={{ scale: 0.85 }}
-							onClick={() => handleVote("up")}
+							onClick={() => handleVote()}
 							className={`p-2 rounded-full ${
-								hasVoted === "up"
+								hasVoted
 									? "text-primary dark:text-primary-light bg-blue-50 dark:bg-blue-900/30"
 									: "text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
 							}`}
@@ -67,26 +62,13 @@ export default function QuestionHeader({
 
 						<motion.span
 							className="px-2 font-medium"
-							key={`vote-${question.upvotes - question.downvotes}`}
+							key={`vote-${question.upvotes}`}
 							initial={{ scale: 1.15 }}
 							animate={{ scale: 1 }}
 							transition={{ type: "spring", stiffness: 400, damping: 10 }}
 						>
-							{question.upvotes - question.downvotes}
+							{question.upvotes}
 						</motion.span>
-
-						<motion.button
-							whileTap={{ scale: 0.85 }}
-							onClick={() => handleVote("down")}
-							className={`p-2 rounded-full ${
-								hasVoted === "down"
-									? "text-red-500 bg-red-50 dark:bg-red-900/30"
-									: "text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
-							}`}
-							aria-label="Downvote"
-						>
-							<FaChevronDown />
-						</motion.button>
 					</div>
 
 					{/* Actions menu */}
@@ -130,7 +112,7 @@ export default function QuestionHeader({
 				</div>
 
 				<div>
-					<span>By {question.authorName}</span>
+					<span>By {question.authorNickname}</span>
 				</div>
 
 				<div>

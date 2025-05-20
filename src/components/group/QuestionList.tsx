@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Question } from "@/types/question";
 import QuestionCard from "./QestionCard";
 
-type Tab = "all" | "popular" | "recent" | "mine" | "unanswered";
+type Tab = "all" | "popular" | "recent" | "unanswered";
 
 type QuestionListProps = {
 	questions: Question[];
@@ -36,8 +36,6 @@ export default function QuestionList({
 					(a, b) =>
 						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 				);
-			case "mine":
-				return filtered.filter((q) => q.authorId === "current-user");
 			case "unanswered":
 				return filtered.filter((q) => !q.isAnswered);
 			default:

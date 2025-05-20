@@ -9,7 +9,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AiButton from "@/components/ui/AiButton";
-import fetchGeminiResponse from "@/utils/geminiAPI";
 
 // Define Zod schema for answer validation
 const answerSchema = z.object({
@@ -23,14 +22,12 @@ type AnswerFormValues = z.infer<typeof answerSchema>;
 
 type AddAnswerFormProps = {
 	questionId: string;
-	questionTitle?: string; // Optional prop to pass question title for AI context
-	answerContent?: string; // Optional prop to pass question content for AI context
+	groupId?: string; // Optional prop to pass group ID for AI context
 };
 
 export default function AddAnswerForm({
 	questionId,
-	questionTitle = "",
-	answerContent: questionContent = "",
+	groupId
 }: Readonly<AddAnswerFormProps>) {
 	const [isAiActive, setIsAiActive] = useState(false);
 	const [isStreaming, setIsStreaming] = useState(false);
@@ -58,11 +55,10 @@ export default function AddAnswerForm({
 		try {
 			await addAnswer({
 				questionId,
+				groupId: groupId ?? "",
 				content: data.content.trim(),
-				authorId: "current-user", // In a real app, this would be the actual user ID
-				authorName: "You (Anonymous)",
+				authorNickname: "Anonymous",
 				upvotes: 0,
-				downvotes: 0,
 				isAccepted: false,
 			});
 
@@ -74,54 +70,7 @@ export default function AddAnswerForm({
 	};
 
 	const toggleAi = async () => {
-		// If currently streaming, abort it
-		if (isStreaming) {
-			if (abortControllerRef.current) {
-				abortControllerRef.current.abort();
-				abortControllerRef.current = null;
-			}
-			setIsStreaming(false);
-			return;
-		}
-
-		setIsAiActive((prev) => !prev);
-
-		if (!isAiActive) {
-			try {
-				setIsStreaming(true);
-
-				// Create a new AbortController for this request
-				abortControllerRef.current = new AbortController();
-
-				// Get the current content
-				const currentTextContent = watch("content");
-
-				// Start with the current content if any
-				let streamedContent = currentTextContent;
-
-				// Call the API with streaming callback and pass the abort signal
-				await fetchGeminiResponse(
-					questionTitle || questionContent
-						? `${questionTitle}: ${questionContent}`
-						: "No question, please add an any answers.",
-					currentTextContent ?? "",
-					0, // Using prompt type 1 for answer generation
-					(chunkText: string) => {
-						streamedContent += chunkText;
-						setValue("content", streamedContent, { shouldValidate: true });
-					},
-					abortControllerRef.current.signal // Pass the abort signal
-				);
-			} catch (error: unknown) {
-				// Check if the error is an abort error
-				if (error instanceof Error && error.name !== "AbortError") {
-					console.error("Error with AI generation:", error);
-				}
-			} finally {
-				setIsStreaming(false);
-				abortControllerRef.current = null;
-			}
-		}
+		// blank
 	};
 
 	// Register the textarea with a ref so we can focus it

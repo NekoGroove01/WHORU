@@ -114,10 +114,7 @@ export default function QuestionPage() {
 						</div>
 
 						{/* Answers List */}
-						<AnswerList
-							answers={answers}
-							questionAuthorId={question.authorId}
-						/>
+						<AnswerList answers={answers} />
 
 						{/* Add Answer Form */}
 						<div className="mt-10">

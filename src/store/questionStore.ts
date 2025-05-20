@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { Question } from "@/types/question";
+import { nanoid } from "nanoid";
 
 type Tab = "all" | "popular" | "recent" | "mine" | "unanswered";
 
@@ -9,11 +10,14 @@ type QuestionState = {
 	isLoading: boolean;
 	activeTab: Tab;
 	selectedTags: string[];
+	error: string | null;
 	setActiveTab: (tab: Tab) => void;
 	setSelectedTags: (tags: string[]) => void;
 	fetchQuestions: (groupId: string) => Promise<void>;
 	fetchQuestionById: (questionId: string) => Promise<void>;
-	addQuestion: (question: Question) => void;
+	addQuestion: (
+		question: Omit<Question, "id" | "createdAt" | "updatedAt">
+	) => Promise<void>;
 	upvoteQuestion: (questionId: string) => void;
 };
 
@@ -23,6 +27,7 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 	isLoading: false,
 	activeTab: "all",
 	selectedTags: [],
+	error: null,
 
 	setActiveTab: (tab) => set({ activeTab: tab }),
 
@@ -96,30 +101,46 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 		}
 	},
 
-	addQuestion: (question) => {
-		set((state) => ({
-			questions: [question, ...state.questions],
-		}));
+	addQuestion: async (question) => {
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 600));
+			const newQuestion: Question = {
+				...question,
+				id: `${nanoid(10)}`,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+			};
+
+			set((state) => ({
+				questions: [...state.questions, newQuestion],
+				question: newQuestion,
+			}));
+			
+		} catch (error) {
+			console.error("Failed to add question:", error);
+			set({ error: "Failed to post your question. Please try again." });
+		}
 	},
 
 	upvoteQuestion: (questionId) => {
 		set((state) => ({
 			questions: state.questions.map((q) => {
 				if (q.id !== questionId) return q;
-				
+
 				// Found the question we want to update
 				return {
 					...q,
-					upvotes: q.upvotes + 1
+					upvotes: q.upvotes + 1,
 				};
 			}),
 			// Also update the active question if it matches
-			question: state.question?.id === questionId
-				? {
-						...state.question,
-						upvotes: state.question.upvotes + 1
-				  }
-				: state.question,
+			question:
+				state.question?.id === questionId
+					? {
+							...state.question,
+							upvotes: state.question.upvotes + 1,
+					  }
+					: state.question,
 		}));
 	},
 }));

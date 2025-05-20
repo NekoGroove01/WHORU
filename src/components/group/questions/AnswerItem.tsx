@@ -16,21 +16,16 @@ export default function AnswerItem({
 	answer,
 	isQuestionAuthor,
 }: Readonly<AnswerItemProps>) {
-	const [hasVoted, setHasVoted] = useState<"up" | "down" | null>(null);
-	const { upvoteAnswer, downvoteAnswer, acceptAnswer } = useAnswerStore();
+	const [hasVoted, setHasVoted] = useState<boolean>(false);
+	const { upvoteAnswer, acceptAnswer } = useAnswerStore();
 
-	const handleVote = (voteType: "up" | "down") => {
-		if (hasVoted === voteType) return;
-
-		console.log("Vote type:", voteType, "Answer ID:", answer.id);
-
-		if (voteType === "up") {
-			upvoteAnswer(answer.id, hasVoted);
-		} else {
-			downvoteAnswer(answer.id, hasVoted);
+	const handleVote = () => {
+		if (hasVoted) {
+			return;
 		}
 
-		setHasVoted(voteType);
+		upvoteAnswer(answer.id);
+		setHasVoted(true);
 	};
 
 	const handleAccept = () => {
@@ -61,9 +56,9 @@ export default function AnswerItem({
 					<div className="flex flex-col items-center mr-4">
 						<motion.button
 							whileTap={{ scale: 0.95 }}
-							onClick={() => handleVote("up")}
+							onClick={() => handleVote()}
 							className={`p-2 rounded-full ${
-								hasVoted === "up"
+								hasVoted
 									? "text-primary dark:text-primary-light bg-blue-50 dark:bg-blue-900/30"
 									: "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
 							}`}
@@ -74,26 +69,13 @@ export default function AnswerItem({
 
 						<motion.span
 							className="text-lg font-semibold my-1"
-							key={`vote-${answer.upvotes - answer.downvotes}`}
+							key={`vote-${answer.upvotes}`}
 							initial={{ scale: 1.25 }}
 							animate={{ scale: 1 }}
 							transition={{ type: "spring", stiffness: 400, damping: 10 }}
 						>
-							{answer.upvotes - answer.downvotes}
+							{answer.upvotes}
 						</motion.span>
-
-						<motion.button
-							whileTap={{ scale: 0.95 }}
-							onClick={() => handleVote("down")}
-							className={`p-2 rounded-full ${
-								hasVoted === "down"
-									? "text-red-500 bg-red-50 dark:bg-red-900/30"
-									: "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-							}`}
-							aria-label="Downvote"
-						>
-							<FaChevronDown />
-						</motion.button>
 
 						{isQuestionAuthor && !answer.isAccepted && (
 							<button
@@ -114,7 +96,7 @@ export default function AnswerItem({
 
 						<div className="mt-4 flex justify-between items-center text-sm">
 							<span className="text-gray-500 dark:text-gray-400">
-								{answer.authorName}
+								{answer.authorNickname}
 							</span>
 
 							<div className="flex items-center text-gray-500 dark:text-gray-400">

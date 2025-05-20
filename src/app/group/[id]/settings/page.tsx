@@ -154,12 +154,6 @@ export default function GroupSettingsPage() {
 		if (!group) return;
 
 		try {
-			const updatedGroup: Group = {
-				...group,
-				isActive: false,
-			};
-
-			await updateGroup(updatedGroup);
 			router.push("/");
 		} catch (error) {
 			console.error("Error archiving group:", error);
@@ -526,13 +520,6 @@ export default function GroupSettingsPage() {
 
 								<div className="flex justify-between items-center">
 									<span className="text-gray-600 dark:text-gray-400">
-										Members
-									</span>
-									<span>{group.memberCount}</span>
-								</div>
-
-								<div className="flex justify-between items-center">
-									<span className="text-gray-600 dark:text-gray-400">
 										Questions
 									</span>
 									<span>{group.questionCount}</span>
@@ -540,9 +527,9 @@ export default function GroupSettingsPage() {
 
 								<div className="flex justify-between items-center">
 									<span className="text-gray-600 dark:text-gray-400">
-										Last Activity
+										Last Updated
 									</span>
-									<span>{timeAgo(group.lastActivity)}</span>
+									<span>{timeAgo(group.updatedAt)}</span>
 								</div>
 							</div>
 						</SettingsSection>

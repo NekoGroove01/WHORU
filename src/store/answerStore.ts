@@ -8,7 +8,7 @@ type AnswerState = {
 	isLoading: boolean;
 	error: string | null;
 	fetchAnswers: (questionId: string) => Promise<void>;
-	addAnswer: (answer: Omit<Answer, "id" | "createdAt">) => Promise<void>;
+	addAnswer: (answer: Omit<Answer, "id" | "createdAt" | "updatedAt">) => Promise<void>;
 	upvoteAnswer: (answerId: string) => void;
 	acceptAnswer: (answerId: string) => void;
 };
@@ -58,6 +58,7 @@ export const useAnswerStore = create<AnswerState>((set) => ({
 				...answerData,
 				id: nanoid(),
 				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 			};
 
 			set((state) => ({

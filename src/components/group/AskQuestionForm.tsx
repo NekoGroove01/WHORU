@@ -66,22 +66,20 @@ export default function AskQuestionForm({
 
 			// Create new question with current data and selected tags
 			const newQuestion = {
-				id: nanoid(),
 				groupId,
 				title: data.title,
 				content: data.content,
+				authorNickname: "Anonymous",
 				tags: selectedTags,
-				authorId: "current-user", // In real app, this would be the actual user ID
-				authorName: "You (Anonymous)",
-				upvotes: 0,
-				downvotes: 0,
 				answerCount: 0,
 				isAnswered: false,
-				createdAt: new Date().toISOString(),
+				isResolvedByAsker: false,
+				upvotes: 0,
+				views: 0,
 			};
 
 			// Add to local state
-			addQuestion(newQuestion);
+			await addQuestion(newQuestion);
 
 			// Reset form after successful submission
 			reset();

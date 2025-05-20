@@ -82,11 +82,6 @@ export default function GroupHeader({ group }: Readonly<GroupHeader>) {
 
 				<div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
 					<div className="flex items-center">
-						<FaUsers className="mr-1" />
-						<span>{group.memberCount} members</span>
-					</div>
-
-					<div className="flex items-center">
 						<FaQuestionCircle className="mr-1" />
 						<span>{group.questionCount} questions</span>
 					</div>
