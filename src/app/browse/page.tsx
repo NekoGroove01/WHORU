@@ -49,14 +49,9 @@ const sortGroups = (groupsToSort: Group[], sortType: string): Group[] => {
 					new Date(a.createdAt ?? "").getTime()
 			);
 		case "popular":
-			return [...groupsToSort].sort((a, b) => b.memberCount - a.memberCount);
-		case "active":
-			return [...groupsToSort].sort((a, b) => {
-				// First sort by isActive
-				if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
-				// Then by question count
-				return b.questionCount - a.questionCount;
-			});
+			return [...groupsToSort].sort(
+				(a, b) => b.questionCount - a.questionCount
+			);
 		default:
 			return groupsToSort;
 	}
@@ -99,9 +94,6 @@ export default function BrowsePage() {
 			// Apply tag filter
 			result = applyTagFilter(result, filters.tags);
 
-			// Apply status filter
-			result = applyStatusFilter(result, filters.status);
-
 			// Apply sorting
 			result = sortGroups(result, filters.sort);
 
@@ -120,7 +112,7 @@ export default function BrowsePage() {
 		return items.filter(
 			(group) =>
 				group.name.toLowerCase().includes(searchLower) ||
-				group.description.toLowerCase().includes(searchLower) ||
+				group.description?.toLowerCase().includes(searchLower) ||
 				group.tags.some((tag) => tag.toLowerCase().includes(searchLower))
 		);
 	};
@@ -130,12 +122,6 @@ export default function BrowsePage() {
 		return items.filter((group) =>
 			tags.some((tag) => group.tags.includes(tag))
 		);
-	};
-
-	const applyStatusFilter = (items: Group[], status: string) => {
-		if (status === "all") return items;
-		const isActive = status === "active";
-		return items.filter((group) => group.isActive === isActive);
 	};
 
 	// --- End Filter Functions (useEffect) ---
@@ -457,150 +443,150 @@ export default function BrowsePage() {
 		</div>
 	);
 }
-// Extended dummy data with more groups and dates
+// Extended dummy data with updated Group interface
 const dummyGroups: Group[] = [
 	{
 		id: "8Fn2JgUWUn57lPGk7L2b3",
 		name: "Tech Talk",
 		description:
 			"Discuss the latest in technology, gadgets, and programming languages. Ask anything from beginner to advanced topics.",
-		memberCount: 1248,
-		questionCount: 356,
+		isPublic: true,
 		tags: ["Technology", "Programming", "Gadgets"],
-		isActive: true,
-		lastActivity: "2023-10-15T14:48:00.000Z",
+		questionCount: 356,
+		lastActivityAt: "2023-10-15T14:48:00.000Z",
 		createdAt: "2023-01-10T09:20:00.000Z",
+		updatedAt: "2023-10-15T14:48:00.000Z",
 	},
 	{
 		id: "3FkL9dG7pQ1mR5sZxC8v2",
 		name: "Campus Connect",
 		description:
 			"Anonymous space for university students to ask questions about courses, professors, and campus life.",
-		memberCount: 834,
-		questionCount: 192,
+		isPublic: true,
 		tags: ["University", "Education", "Campus"],
-		isActive: true,
-		lastActivity: "2023-10-16T09:22:00.000Z",
+		questionCount: 192,
+		lastActivityAt: "2023-10-16T09:22:00.000Z",
 		createdAt: "2023-02-05T11:15:00.000Z",
+		updatedAt: "2023-10-16T09:22:00.000Z",
 	},
 	{
 		id: "7HsT2jK4wP9bN6vX1yZ5m",
 		name: "Startup Founders",
 		description:
 			"A safe space for entrepreneurs to ask sensitive questions about funding, growth, and challenges.",
-		memberCount: 521,
-		questionCount: 147,
+		isPublic: true,
 		tags: ["Business", "Startups", "Entrepreneurship"],
-		isActive: false,
-		lastActivity: "2023-09-30T16:05:00.000Z",
+		questionCount: 147,
+		lastActivityAt: "2023-09-30T16:05:00.000Z",
 		createdAt: "2023-03-12T15:30:00.000Z",
+		updatedAt: "2023-09-30T16:05:00.000Z",
 	},
 	{
 		id: "2BcV5gH8nM4kR7sW9xZ3p",
 		name: "Mental Wellbeing",
 		description:
 			"Support community for discussing mental health topics anonymously and without judgment.",
-		memberCount: 976,
-		questionCount: 289,
+		isPublic: true,
 		tags: ["Health", "Wellness", "Support"],
-		isActive: true,
-		lastActivity: "2023-10-16T21:34:00.000Z",
+		questionCount: 289,
+		lastActivityAt: "2023-10-16T21:34:00.000Z",
 		createdAt: "2023-01-15T08:45:00.000Z",
+		updatedAt: "2023-10-16T21:34:00.000Z",
 	},
 	{
 		id: "5Lq9mN3jK7fT2pR8vX4cZ",
 		name: "Career Crossroads",
 		description:
 			"Get anonymous feedback on job offers, salary negotiations, workplace conflicts, and career transitions.",
-		memberCount: 1105,
-		questionCount: 423,
+		isPublic: true,
 		tags: ["Career", "Jobs", "Professional"],
-		isActive: true,
-		lastActivity: "2023-10-17T11:19:00.000Z",
+		questionCount: 423,
+		lastActivityAt: "2023-10-17T11:19:00.000Z",
 		createdAt: "2023-02-20T14:30:00.000Z",
+		updatedAt: "2023-10-17T11:19:00.000Z",
 	},
 	{
 		id: "9Dt7bV4fG2hJ5mN8wP3qS",
 		name: "Creative Corner",
 		description:
 			"Share your creative projects and get honest feedback from other artists, writers, and designers.",
-		memberCount: 687,
-		questionCount: 154,
+		isPublic: true,
 		tags: ["Art", "Design", "Creative"],
-		isActive: false,
-		lastActivity: "2023-09-25T18:40:00.000Z",
+		questionCount: 154,
+		lastActivityAt: "2023-09-25T18:40:00.000Z",
 		createdAt: "2023-04-05T10:15:00.000Z",
+		updatedAt: "2023-09-25T18:40:00.000Z",
 	},
 	{
 		id: "4Qs8cR2vT9wX6yZ3nM7kP",
 		name: "Parent Hub",
 		description:
 			"A judgment-free zone for parents to ask questions about parenting challenges, children's behavior, and family dynamics.",
-		memberCount: 1456,
-		questionCount: 578,
+		isPublic: true,
 		tags: ["Parenting", "Family", "Children"],
-		isActive: true,
-		lastActivity: "2023-10-17T08:12:00.000Z",
+		questionCount: 578,
+		lastActivityAt: "2023-10-17T08:12:00.000Z",
 		createdAt: "2023-01-05T16:20:00.000Z",
+		updatedAt: "2023-10-17T08:12:00.000Z",
 	},
 	{
 		id: "6Wt3zN8xR5cV2mL7bK9jH",
 		name: "Fitness Goals",
 		description:
 			"Share fitness questions, workout routines, nutrition advice, and get motivation from fellow fitness enthusiasts.",
-		memberCount: 932,
-		questionCount: 267,
+		isPublic: true,
 		tags: ["Fitness", "Health", "Nutrition"],
-		isActive: true,
-		lastActivity: "2023-10-16T15:45:00.000Z",
+		questionCount: 267,
+		lastActivityAt: "2023-10-16T15:45:00.000Z",
 		createdAt: "2023-03-01T12:10:00.000Z",
+		updatedAt: "2023-10-16T15:45:00.000Z",
 	},
 	{
 		id: "1Kp7jH4fT9sR2vN5bM8wZ",
 		name: "Book Lovers Anonymous",
 		description:
 			"Discuss books, authors, and literary themes without worrying about judgment for your reading preferences.",
-		memberCount: 734,
-		questionCount: 185,
+		isPublic: true,
 		tags: ["Books", "Reading", "Literature"],
-		isActive: true,
-		lastActivity: "2023-10-15T19:32:00.000Z",
+		questionCount: 185,
+		lastActivityAt: "2023-10-15T19:32:00.000Z",
 		createdAt: "2023-02-15T09:40:00.000Z",
+		updatedAt: "2023-10-15T19:32:00.000Z",
 	},
 	{
 		id: "0Gj5hN2pQ8vR4tW7mK3fS",
 		name: "Gaming Guild",
 		description:
 			"Ask questions about games, gaming strategies, equipment, and connect with other gamers anonymously.",
-		memberCount: 1870,
-		questionCount: 629,
+		isPublic: true,
 		tags: ["Gaming", "Video Games", "Esports"],
-		isActive: true,
-		lastActivity: "2023-10-17T02:28:00.000Z",
+		questionCount: 629,
+		lastActivityAt: "2023-10-17T02:28:00.000Z",
 		createdAt: "2023-01-20T11:30:00.000Z",
+		updatedAt: "2023-10-17T02:28:00.000Z",
 	},
 	{
 		id: "7Zp3xC8vB1nM6kR2fT9qD",
 		name: "Relationship Advice",
 		description:
 			"A supportive space to ask sensitive questions about relationships, dating, and interpersonal dynamics.",
-		memberCount: 1325,
-		questionCount: 517,
+		isPublic: true,
 		tags: ["Relationships", "Dating", "Communication"],
-		isActive: true,
-		lastActivity: "2023-10-17T09:54:00.000Z",
+		questionCount: 517,
+		lastActivityAt: "2023-10-17T09:54:00.000Z",
 		createdAt: "2023-01-12T13:25:00.000Z",
+		updatedAt: "2023-10-17T09:54:00.000Z",
 	},
 	{
 		id: "2Hs9jN4mP7wQ3bK8vR5zT",
 		name: "Culinary Questions",
 		description:
 			"Ask cooking questions, share recipes, and discuss food-related topics with fellow food enthusiasts.",
-		memberCount: 645,
-		questionCount: 298,
+		isPublic: true,
 		tags: ["Cooking", "Food", "Recipes"],
-		isActive: false,
-		lastActivity: "2023-10-10T14:21:00.000Z",
+		questionCount: 298,
+		lastActivityAt: "2023-10-10T14:21:00.000Z",
 		createdAt: "2023-03-18T10:05:00.000Z",
+		updatedAt: "2023-10-10T14:21:00.000Z",
 	},
 ];
