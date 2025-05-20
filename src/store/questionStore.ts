@@ -14,14 +14,7 @@ type QuestionState = {
 	fetchQuestions: (groupId: string) => Promise<void>;
 	fetchQuestionById: (questionId: string) => Promise<void>;
 	addQuestion: (question: Question) => void;
-	upvoteQuestion: (
-		questionId: string,
-		previousVote: "up" | "down" | null
-	) => void;
-	downvoteQuestion: (
-		questionId: string,
-		previousVote: "up" | "down" | null
-	) => void;
+	upvoteQuestion: (questionId: string) => void;
 };
 
 export const useQuestionStore = create<QuestionState>((set, get) => ({
@@ -48,14 +41,15 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 				title: `Sample question ${i + 1} about design processes?`,
 				content:
 					"This is a detailed explanation of my question about our design workflow and processes.",
-				authorId: i % 3 === 0 ? "current-user" : `user-${i}`,
-				authorName: i % 3 === 0 ? "You (Anonymous)" : `Anonymous ${i}`,
+				authorNickname: `Anonymous${i + 1}`,
 				tags: i % 2 === 0 ? ["Design"] : ["Feedback"],
-				upvotes: Math.floor(Math.random() * 20),
-				downvotes: Math.floor(Math.random() * 5),
 				answerCount: Math.floor(Math.random() * 5),
-				isAnswered: i % 3 === 0,
+				isAnswered: Math.random() < 0.5,
+				isResolvedByAsker: Math.random() < 0.5,
+				upvotes: Math.floor(Math.random() * 20),
+				views: Math.floor(Math.random() * 100),
 				createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+				updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
 			}));
 
 			set({ questions: mockQuestions, isLoading: false });
@@ -78,14 +72,15 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 				title: "How do we improve the user onboarding experience?",
 				content:
 					"Our analytics show that many users drop off during the onboarding process. I've noticed that our current onboarding flow has too many steps and might be confusing. What are some ways we could simplify this process while still collecting necessary information? Has anyone experimented with progressive onboarding techniques?",
-				authorId: "user-123",
-				authorName: "Anonymous Raccoon",
+				authorNickname: "AnonymousUser",
 				tags: ["UX", "Onboarding", "Conversion"],
-				upvotes: 24,
-				downvotes: 2,
-				answerCount: 5,
+				answerCount: 3,
 				isAnswered: true,
-				createdAt: "2023-11-15T10:30:00Z",
+				isResolvedByAsker: false,
+				upvotes: 24,
+				views: 150,
+				createdAt: "2024-11-15T10:30:00Z",
+				updatedAt: "2024-11-16T12:00:00Z",
 			};
 
 			set({
@@ -107,72 +102,24 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 		}));
 	},
 
-	upvoteQuestion: (questionId, previousVote) => {
+	upvoteQuestion: (questionId) => {
 		set((state) => ({
 			questions: state.questions.map((q) => {
 				if (q.id !== questionId) return q;
-
+				
 				// Found the question we want to update
-				const updatedQuestion = { ...q };
-
-				// Cancel previous vote if exists
-				if (previousVote === "down") {
-					updatedQuestion.downvotes = Math.max(
-						0,
-						updatedQuestion.downvotes - 1
-					);
-				}
-
-				// Add new upvote
-				updatedQuestion.upvotes += 1;
-
-				return updatedQuestion;
+				return {
+					...q,
+					upvotes: q.upvotes + 1
+				};
 			}),
 			// Also update the active question if it matches
-			question:
-				state.question?.id === questionId
-					? {
-							...state.question,
-							upvotes: state.question.upvotes + 1,
-							downvotes:
-								previousVote === "down"
-									? Math.max(0, state.question.downvotes - 1)
-									: state.question.downvotes,
-					  }
-					: state.question,
-		}));
-	},
-
-	downvoteQuestion: (questionId, previousVote) => {
-		set((state) => ({
-			questions: state.questions.map((q) => {
-				if (q.id !== questionId) return q;
-
-				// Found the question we want to update
-				const updatedQuestion = { ...q };
-
-				// Cancel previous vote if exists
-				if (previousVote === "up") {
-					updatedQuestion.upvotes = Math.max(0, updatedQuestion.upvotes - 1);
-				}
-
-				// Add new downvote
-				updatedQuestion.downvotes += 1;
-
-				return updatedQuestion;
-			}),
-			// Also update the active question if it matches
-			question:
-				state.question?.id === questionId
-					? {
-							...state.question,
-							downvotes: state.question.downvotes + 1,
-							upvotes:
-								previousVote === "up"
-									? Math.max(0, state.question.upvotes - 1)
-									: state.question.upvotes,
-					  }
-					: state.question,
+			question: state.question?.id === questionId
+				? {
+						...state.question,
+						upvotes: state.question.upvotes + 1
+				  }
+				: state.question,
 		}));
 	},
 }));

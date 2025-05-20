@@ -26,12 +26,12 @@ export const useGroupStore = create<GroupState>((set) => ({
 				name: "Design Team Feedback",
 				description:
 					"Anonymous Q&A space for our design team to share thoughts and feedback",
-				memberCount: 25,
-				questionCount: 12,
+				isPublic: false,
 				tags: ["Design", "UI/UX", "Feedback", "Product", "Research"],
-				isActive: true,
-				lastActivity: new Date().toISOString(),
-				createdAt: "2023-09-15T10:00:00Z",
+				questionCount: 12,
+				lastActivityAt: new Date().toISOString(),
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 			};
 
 			set({ group: mockGroup });

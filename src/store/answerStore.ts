@@ -9,11 +9,7 @@ type AnswerState = {
 	error: string | null;
 	fetchAnswers: (questionId: string) => Promise<void>;
 	addAnswer: (answer: Omit<Answer, "id" | "createdAt">) => Promise<void>;
-	upvoteAnswer: (answerId: string, previousVote: "up" | "down" | null) => void;
-	downvoteAnswer: (
-		answerId: string,
-		previousVote: "up" | "down" | null
-	) => void;
+	upvoteAnswer: (answerId: string) => void;
 	acceptAnswer: (answerId: string) => void;
 };
 
@@ -32,15 +28,15 @@ export const useAnswerStore = create<AnswerState>((set) => ({
 			const mockAnswers: Answer[] = Array.from({ length: 5 }, (_, i) => ({
 				id: `${nanoid(10)}-${i}`,
 				questionId,
+				groupId: `group-${i}`,
 				content: `This is a sample answer ${
 					i + 1
 				}. It explains how to approach the problem described in the question. The explanation includes specific details and examples to make it more helpful.`,
-				authorId: `user-${i}`,
-				authorName: `Anonymous ${i + 1}`,
+				authorNickname: `Anonymous${i + 1}`,
 				upvotes: Math.floor(Math.random() * 15),
-				downvotes: Math.floor(Math.random() * 3),
 				isAccepted: i === 0, // First answer is accepted
 				createdAt: new Date(Date.now() - i * 3600000).toISOString(),
+				updatedAt: new Date(Date.now() - i * 3600000).toISOString(),
 			}));
 
 			set({ answers: mockAnswers, isLoading: false });
@@ -73,44 +69,24 @@ export const useAnswerStore = create<AnswerState>((set) => ({
 		}
 	},
 
-	upvoteAnswer: (answerId, previousVote) => {
-		set((state) => ({
-			answers: state.answers.map((answer) => {
-				if (answer.id !== answerId) return answer;
-
-				const updatedAnswer = { ...answer };
-
-				// Cancel previous vote if exists
-				if (previousVote === "down") {
-					updatedAnswer.downvotes = Math.max(0, updatedAnswer.downvotes - 1);
-				}
-
-				// Add new upvote
-				updatedAnswer.upvotes += 1;
-
-				return updatedAnswer;
-			}),
-		}));
-	},
-
-	downvoteAnswer: (answerId, previousVote) => {
-		set((state) => ({
-			answers: state.answers.map((answer) => {
-				if (answer.id !== answerId) return answer;
-
-				const updatedAnswer = { ...answer };
-
-				// Cancel previous vote if exists
-				if (previousVote === "up") {
-					updatedAnswer.upvotes = Math.max(0, updatedAnswer.upvotes - 1);
-				}
-
-				// Add new downvote
-				updatedAnswer.downvotes += 1;
-
-				return updatedAnswer;
-			}),
-		}));
+	upvoteAnswer: (answerId) => {
+		set((state) => {
+			// Find the answer to ensure it exists
+			const answerExists = state.answers.some(answer => answer.id === answerId);
+			
+			if (!answerExists) {
+				console.debug(`Answer with id ${answerId} not found`);
+				return state;
+			}
+			
+			return {
+				answers: state.answers.map((answer) => 
+					answer.id === answerId 
+						? { ...answer, upvotes: answer.upvotes + 1 }
+						: answer
+				)
+			};
+		});
 	},
 
 	acceptAnswer: (answerId) => {
