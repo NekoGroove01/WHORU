@@ -11,7 +11,7 @@ import { nanoid } from "nanoid";
 import { useQuestionStore } from "@/store/questionStore";
 import { useGroupStore } from "@/store/groupStore";
 import AiButton from "../ui/AiButton";
-import fetchGeminiResponse from "@/utils/geminiAPI";
+import fetchGeminiResponse from "@/utils/geminiService";
 
 type AskQuestionFormProps = {
 	groupId: string;

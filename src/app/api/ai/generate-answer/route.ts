@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GenerateQuestionSchema } from "@/utils/schemas";
-import { createGenerateQuestionPrompt } from "@/utils/geminiService";
-import { createStreamingResponse } from "@/utils/streamUtils"
+import { GenerateAnswerSchema } from "@/utils/schemas";
+import { createGenerateAnswerPrompt } from "@/utils/geminiService";
+import { createStreamingResponse } from "@/utils/streamUtils";
 
 export async function POST(request: NextRequest) {
 	try {
 		const body = await request.json();
-		const validation = GenerateQuestionSchema.safeParse(body);
+		const validation = GenerateAnswerSchema.safeParse(body);
 
 		if (!validation.success) {
 			return NextResponse.json(
@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const { topic, context: existingUserQuestion /*, groupId */ } =
+		const { questionContent, context /*, groupId, questionId */ } =
 			validation.data;
 
-		const prompt = createGenerateQuestionPrompt(topic, existingUserQuestion);
+		const prompt = createGenerateAnswerPrompt(questionContent, context);
 		const stream = createStreamingResponse(prompt, request.signal);
 
 		return new NextResponse(stream, {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 			},
 		});
 	} catch (error) {
-		console.error("[AI Generate Question Error]:", error);
+		console.error("[AI Generate Answer Error]:", error);
 		if (error instanceof SyntaxError) {
 			// JSON parsing error
 			return NextResponse.json(
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 			);
 		}
 		return NextResponse.json(
-			{ message: "Internal server error generating question" },
+			{ message: "Internal server error generating answer" },
 			{ status: 500 }
 		);
 	}
