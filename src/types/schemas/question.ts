@@ -1,22 +1,40 @@
-import { ObjectId } from "mongodb";
+import { z } from "zod";
 
-export interface DbQuestion {
-  _id: ObjectId;
-  groupId: ObjectId; // Reference to Group._id
-  title?: string; // Optional, content might be enough
-  content: string; // Required
-  authorNickname: string; // Temporary nickname, e.g., "Curious Cat"
-  // For question management (edit/delete/accept answer)
-  // Option A: Specific password per question
-  managementPasswordHash?: string; // bcrypt hash, if Qs have individual passwords
-  // Option B: Managed by group admin (preferred for simplicity if "almost no login" means avoiding many micro-passwords)
-  // Option C: Temporary edit token (see Authentication section)
-  tags?: string[]; // Subset of group tags or user-defined
-  answerCount: number; // Default: 0, denormalized
-  isAnswered: boolean; // Default: false (true if an answer is accepted)
-  isResolvedByAsker?: boolean; // Default: false
-  upvotes: number; // Default: 0
-  views: number; // Default: 0
-  createdAt: Date;
-  updatedAt: Date;
-}
+export const QuestionSchema = z.object({
+	_id: z.string(),
+	groupId: z.string(),
+	title: z.string().max(200).nullable(),
+	content: z.string().min(1).max(5000),
+	authorNickname: z.string().min(1).max(50),
+	authorPassword: z.string(), // Hashed, for editing
+	tags: z.array(z.string()).max(5),
+	answerCount: z.number().int().min(0).default(0),
+	isAnswered: z.boolean().default(false),
+	isResolvedByAsker: z.boolean().default(false),
+	upvotes: z.number().int().min(0).default(0),
+	views: z.number().int().min(0).default(0),
+	mediaIds: z.array(z.string()).default([]),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+
+export const CreateQuestionSchema = z.object({
+	groupId: z.string(),
+	title: z.string().max(200).optional(),
+	content: z.string().min(1).max(5000),
+	authorNickname: z.string().min(1).max(50),
+	authorPassword: z.string().min(6),
+	tags: z.array(z.string()).max(5).default([]),
+	mediaIds: z.array(z.string()).optional(),
+});
+
+export const UpdateQuestionSchema = z.object({
+	title: z.string().max(200).nullable().optional(),
+	content: z.string().min(1).max(5000).optional(),
+	tags: z.array(z.string()).max(5).optional(),
+	authorPassword: z.string().min(6),
+});
+
+export type Question = z.infer<typeof QuestionSchema>;
+export type CreateQuestion = z.infer<typeof CreateQuestionSchema>;
+export type UpdateQuestion = z.infer<typeof UpdateQuestionSchema>;

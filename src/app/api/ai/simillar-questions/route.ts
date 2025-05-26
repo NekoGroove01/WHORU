@@ -1,59 +1,51 @@
-import { NextRequest, NextResponse } from "next/server";
-import { SimilarQuestionsSchema } from "@/utils/schemas";
-import { createSimilarQuestionsPrompt } from "@/utils/geminiService"; // Adjusted path
-import { createStreamingResponse } from "@/utils/streamUtils"; // Adjusted path
-// import { connectToDatabase } from "@/utils/mongodb"; // If you need to fetch existing questions for context
+import { NextResponse } from "next/server";
+import { QuestionsCollection } from "@/lib/db/collections/questions";
+import { findSimilarQuestions } from "@/utils/geminiService";
+import { validateRequest } from "@/middleware/validation";
+import { withErrorHandler } from "@/middleware/errorHandler";
+import z from "zod";
 
-export async function POST(request: NextRequest) {
-	try {
-		const body = await request.json();
-		const validation = SimilarQuestionsSchema.safeParse(body);
+const SimilarQuestionsSchema = z.object({
+	groupId: z.string(),
+	questionText: z.string().max(500),
+	limit: z.number().int().min(1).max(10).default(5),
+});
 
-		if (!validation.success) {
-			return NextResponse.json(
-				{ message: "Invalid input", errors: validation.error.errors },
-				{ status: 400 }
-			);
-		}
+// POST /api/ai/similar-questions - Find similar questions (non-streaming)
+export const POST = withErrorHandler(
+	validateRequest(SimilarQuestionsSchema)(async (req) => {
+		const data = req.validatedData!;
 
-		const { currentQuestionContent /*, groupId, currentQuestionId */ } =
-			validation.data;
-
-		// Optional: Fetch other questions from the group for better context
-		// let existingQuestionsContext = "";
-		// if (groupId) {
-		//     const { db } = await connectToDatabase();
-		//     const otherQuestions = await db.collection("questions")
-		//         .find({ groupId: new ObjectId(groupId), _id: { $ne: new ObjectId(currentQuestionId) } })
-		//         .limit(5) // Get a few for context
-		//         .project({ title: 1, content: 1 })
-		//         .toArray();
-		//     existingQuestionsContext = otherQuestions.map(q => q.title || q.content.substring(0,100)).join("\n---\n");
-		// }
-
-		const prompt = createSimilarQuestionsPrompt(
-			currentQuestionContent /*, existingQuestionsContext */
-		);
-		const stream = createStreamingResponse(prompt, request.signal);
-
-		return new NextResponse(stream, {
-			headers: {
-				"Content-Type": "text/plain; charset=utf-8", // Or application/octet-stream
-				"X-Content-Type-Options": "nosniff",
-			},
+		// Get questions from group
+		const { questions } = await QuestionsCollection.findByGroup(data.groupId, {
+			limit: 100,
 		});
-	} catch (error) {
-		console.error("[AI Similar Questions Error]:", error);
-		if (error instanceof SyntaxError) {
-			// JSON parsing error
-			return NextResponse.json(
-				{ message: "Invalid JSON payload" },
-				{ status: 400 }
-			);
+
+		if (questions.length === 0) {
+			return NextResponse.json({ similarQuestions: [] });
 		}
-		return NextResponse.json(
-			{ message: "Internal server error generating similar questions" },
-			{ status: 500 }
-		);
-	}
-}
+
+		// Find similar questions
+		const {
+			questions: similarQuestions,
+			tokensUsed,
+			cost,
+		} = await findSimilarQuestions(data.questionText, questions, data.limit);
+
+		// Transform to public format
+		const publicQuestions = similarQuestions.map((q) => ({
+			id: q._id,
+			title: q.title,
+			content: q.content,
+			tags: q.tags,
+			answerCount: q.answerCount,
+			upvotes: q.upvotes,
+			createdAt: q.createdAt,
+		}));
+
+		return NextResponse.json({
+			similarQuestions: publicQuestions,
+			usage: { tokensUsed, cost },
+		});
+	})
+);

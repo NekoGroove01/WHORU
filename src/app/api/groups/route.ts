@@ -1,172 +1,61 @@
-// src/app/api/groups/route.ts
-import { NextResponse, type NextRequest } from "next/server";
-import bcrypt from "bcrypt";
-import { nanoid } from "nanoid";
-import { connectToDatabase } from "@/utils/mongodb";
-import { CreateGroupSchema, PaginationQuerySchema } from "@/utils/schemas";
-import type { Group } from "@/types/group";
-import type { DbGroup } from "@/types/schemas/group";
+import { NextRequest, NextResponse } from "next/server";
+import { GroupsCollection } from "@/lib/db/collections/groups";
+import { CreateGroupSchema } from "@/types/schemas/group";
+import { validateRequest } from "@/middleware/validation";
+import { withErrorHandler } from "@/middleware/errorHandler";
 
-const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS ?? "16", 16);
+// GET /api/groups - Get public groups
+export const GET = withErrorHandler(async (req: NextRequest) => {
+	const { searchParams } = new URL(req.url);
+	const page = parseInt(searchParams.get("page") || "1");
+	const limit = parseInt(searchParams.get("limit") || "20");
+	const skip = (page - 1) * limit;
 
-// Helper to map DB document to frontend Group type
-// For list view, accessKey for private groups should not be exposed
-function mapDbGroupToGroupListItem(dbGroup: DbGroup): Omit<Group, "accessKey"> {
-	return {
-		id: dbGroup._id.toHexString(),
-		name: dbGroup.name,
-		description: dbGroup.description ?? null,
-		isPublic: dbGroup.isPublic,
-		tags: dbGroup?.tags ?? [],
-		questionCount: dbGroup.questionCount,
-		lastActivityAt: dbGroup.lastActivityAt.toISOString(),
-		createdAt: dbGroup.createdAt.toISOString(),
-		updatedAt: dbGroup.updatedAt.toISOString(),
-	};
-}
+	const { groups, total } = await GroupsCollection.findPublicGroups(
+		skip,
+		limit
+	);
 
-function mapDbGroupToGroupDetail(dbGroup: DbGroup): Group {
-	return {
-		id: dbGroup._id.toHexString(),
-		name: dbGroup.name,
-		description: dbGroup.description ?? null,
-		isPublic: dbGroup.isPublic,
-		// Only include accessKey if the group is private; public groups don't need/use it in this context
-		accessKey: dbGroup.isPublic ? undefined : dbGroup.accessKey,
-		tags: dbGroup.tags ?? [],
-		questionCount: dbGroup.questionCount,
-		lastActivityAt: dbGroup.lastActivityAt.toISOString(),
-		createdAt: dbGroup.createdAt.toISOString(),
-		updatedAt: dbGroup.updatedAt.toISOString(),
-	};
-}
+	// Transform groups to remove sensitive data
+	const publicGroups = groups.map((group) => ({
+		id: group._id,
+		name: group.name,
+		description: group.description,
+		tags: group.tags,
+		questionCount: group.questionCount,
+		lastActivityAt: group.lastActivityAt,
+		createdAt: group.createdAt,
+	}));
 
-export async function POST(request: NextRequest) {
-	try {
-		const body = await request.json();
-		const validationResult = CreateGroupSchema.safeParse(body);
-
-		if (!validationResult.success) {
-			return NextResponse.json(
-				{
-					message: "Invalid input",
-					errors: validationResult.error.flatten().fieldErrors,
-				},
-				{ status: 400 }
-			);
-		}
-
-		const { name, description, isPublic, managementPassword, tags } =
-			validationResult.data;
-
-		const { db } = await connectToDatabase();
-
-		const managementPasswordHash = await bcrypt.hash(
-			managementPassword,
-			BCRYPT_SALT_ROUNDS
-		);
-
-		const now = new Date();
-		const newGroup: Omit<DbGroup, "_id"> = {
-			name,
-			description: description ?? undefined, // Store as undefined if null/empty
-			isPublic: isPublic ?? true,
-			accessKey: isPublic ? undefined : nanoid(8), // Generate accessKey only for private groups
-			managementPasswordHash,
-			tags: tags ?? [],
-			questionCount: 0,
-			lastActivityAt: now,
-			createdAt: now,
-			updatedAt: now,
-		};
-
-		const result = await db
-			.collection<Omit<DbGroup, "_id">>("groups")
-			.insertOne(newGroup);
-
-		if (!result.insertedId) {
-			return NextResponse.json(
-				{ message: "Failed to create group" },
-				{ status: 500 }
-			);
-		}
-
-		const createdGroup = {
-			_id: result.insertedId,
-			...newGroup,
-		} as DbGroup;
-
-		return NextResponse.json(
-			{ group: mapDbGroupToGroupDetail(createdGroup) },
-			{ status: 201 }
-		);
-	} catch (error) {
-		console.error("Failed to create group:", error);
-		return NextResponse.json(
-			{ message: "Internal server error" },
-			{ status: 500 }
-		);
-	}
-}
-
-export async function GET(request: NextRequest) {
-	try {
-		const { searchParams } = request.nextUrl;
-		const queryParams = Object.fromEntries(searchParams.entries());
-		const validationResult = PaginationQuerySchema.safeParse(queryParams);
-
-		if (!validationResult.success) {
-			return NextResponse.json(
-				{
-					message: "Invalid query parameters",
-					errors: validationResult.error.flatten().fieldErrors,
-				},
-				{ status: 400 }
-			);
-		}
-
-		const {
+	return NextResponse.json({
+		groups: publicGroups,
+		pagination: {
 			page,
 			limit,
-			sortBy = "lastActivityAt",
-			sortOrder = "desc",
-		} = validationResult.data;
+			total,
+			totalPages: Math.ceil(total / limit),
+		},
+	});
+});
 
-		const { db } = await connectToDatabase();
-		const skip = (page - 1) * limit;
+// POST /api/groups - Create new group
+export const POST = withErrorHandler(
+	validateRequest(CreateGroupSchema)(async (req) => {
+		const data = req.validatedData!;
 
-		const sortOptions: { [key: string]: 1 | -1 } = {};
-		if (sortBy) {
-			sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
-		}
+		const group = await GroupsCollection.create(data);
 
-		const groupsCollection = db.collection<DbGroup>("groups");
-		const totalGroups = await groupsCollection.countDocuments({
-			isPublic: true,
+		// Return group without sensitive data
+		return NextResponse.json({
+			id: group._id,
+			name: group.name,
+			description: group.description,
+			isPublic: group.isPublic,
+			accessKey: group.accessKey,
+			tags: group.tags,
+			questionCount: group.questionCount,
+			lastActivityAt: group.lastActivityAt,
+			createdAt: group.createdAt,
 		});
-		const dbGroups = await groupsCollection
-			.find({ isPublic: true })
-			.sort(sortOptions)
-			.skip(skip)
-			.limit(limit)
-			.toArray();
-
-		const groups = dbGroups.map(mapDbGroupToGroupListItem);
-
-		return NextResponse.json(
-			{
-				groups,
-				totalPages: Math.ceil(totalGroups / limit),
-				currentPage: page,
-				totalGroups,
-			},
-			{ status: 200 }
-		);
-	} catch (error) {
-		console.error("Failed to fetch groups:", error);
-		return NextResponse.json(
-			{ message: "Internal server error" },
-			{ status: 500 }
-		);
-	}
-}
+	})
+);

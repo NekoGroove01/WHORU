@@ -1,64 +1,31 @@
-// src/app/api/groups/join/route.ts
-import { NextResponse, type NextRequest } from "next/server";
-import { connectToDatabase } from "@/utils/mongodb";
-import { JoinGroupSchema } from "@/utils/schemas";
-import type { Group } from "@/types/group";
-import type { DbGroup } from "@/types/schemas/group";
+import { NextResponse } from "next/server";
+import { GroupsCollection } from "@/lib/db/collections/groups";
+import { validateRequest } from "@/middleware/validation";
+import { withErrorHandler, NotFoundError } from "@/middleware/errorHandler";
+import z from "zod";
 
-// Helper to map DB document to frontend Group type for this context
-// When joining, we show basic group details, not the accessKey itself.
-function mapDbGroupToJoinResult(dbGroup: DbGroup): Omit<Group, "accessKey"> {
-	return {
-		id: dbGroup._id.toHexString(),
-		name: dbGroup.name,
-		description: dbGroup.description ?? null,
-		isPublic: dbGroup.isPublic, // Will be false in this context
-		tags: dbGroup.tags ?? [],
-		questionCount: dbGroup.questionCount,
-		lastActivityAt: dbGroup.lastActivityAt.toISOString(),
-		createdAt: dbGroup.createdAt.toISOString(),
-		updatedAt: dbGroup.updatedAt.toISOString(),
-	};
-}
+const JoinGroupSchema = z.object({
+	accessKey: z.string(),
+});
 
-export async function POST(request: NextRequest) {
-	try {
-		const body = await request.json();
-		const validationResult = JoinGroupSchema.safeParse(body);
+// POST /api/groups/join - Join private group
+export const POST = withErrorHandler(
+	validateRequest(JoinGroupSchema)(async (req) => {
+		const { accessKey } = req.validatedData!;
 
-		if (!validationResult.success) {
-			return NextResponse.json(
-				{
-					message: "Invalid input",
-					errors: validationResult.error.flatten().fieldErrors,
-				},
-				{ status: 400 }
-			);
-		}
-
-		const { accessKey } = validationResult.data;
-
-		const { db } = await connectToDatabase();
-		const group = await db
-			.collection<DbGroup>("groups")
-			.findOne({ accessKey: accessKey, isPublic: false }); // Ensure it's a private group's key
+		// Find group by access key
+		const groups = await GroupsCollection.findPublicGroups(0, 1000);
+		const group = groups.groups.find((g) => g.accessKey === accessKey);
 
 		if (!group) {
-			return NextResponse.json(
-				{ message: "Invalid or expired access key, or group is not private." },
-				{ status: 404 }
-			);
+			throw new NotFoundError("Invalid access key");
 		}
 
-		return NextResponse.json(
-			{ group: mapDbGroupToJoinResult(group) },
-			{ status: 200 }
-		);
-	} catch (error) {
-		console.error("Failed to join group:", error);
-		return NextResponse.json(
-			{ message: "Internal server error" },
-			{ status: 500 }
-		);
-	}
-}
+		return NextResponse.json({
+			id: group._id,
+			name: group.name,
+			description: group.description,
+			tags: group.tags,
+		});
+	})
+);

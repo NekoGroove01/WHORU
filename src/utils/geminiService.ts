@@ -1,214 +1,250 @@
-import {
-	GoogleGenAI,
-	Content,
-} from "@google/genai";
+import { GoogleGenAI, Content } from "@google/genai";
+import { Question } from "@/types/schemas/question";
 
-const API_KEY = process.env.GEMINI_API_KEY; // Ensure this is set in your .env.local or Vercel env vars
-
+// Initialize Gemini client
+const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) {
-	console.warn(
-		"GEMINI_API_KEY is not set. AI features will not work. Please set it in your environment variables."
-	);
+	console.warn("GEMINI_API_KEY is not set. AI features will not work.");
 }
 
-// Initialize the GoogleGenAI client with API key
-// This instance can be reused.
 const genAI = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
+const MODEL_NAME = "gemini-2.0-flash";
 
-const GEMINI_MODEL_NAME = "gemini-2.0-flash";
+// Token estimation constants
+const CHARS_PER_TOKEN = 4;
+const COST_PER_TOKEN = 0.000001;
 
-interface StreamGeminiResponseParams {
-	prompt: string | Content | (string | Content)[]; // Allow flexible prompt types
+interface StreamConfig {
 	onChunk: (text: string) => void;
 	onError: (error: Error) => void;
-	onComplete: () => void;
+	onComplete: (tokensUsed: number, cost: number) => void;
 	abortSignal?: AbortSignal;
 }
 
-/**
- * Generates content from the Gemini API and streams the response.
- * This is a server-side utility.
- */
-export async function streamGeminiResponse({
-	prompt,
-	onChunk,
-	onError,
-	onComplete,
-	abortSignal,
-}: StreamGeminiResponseParams): Promise<void> {
+// Stream response handler
+async function streamGeminiResponse(
+	prompt: string | Content | Content[],
+	config: StreamConfig
+): Promise<void> {
 	if (!genAI) {
-		onError(new Error("Gemini API client is not initialized. Check API_KEY."));
-		onComplete();
+		config.onError(new Error("Gemini API client not initialized"));
+		config.onComplete(0, 0);
 		return;
 	}
 
-	try {
-		const model = genAI.models;
-		const generationConfig = {
-			temperature: 1, // Example: Adjust creativity
-			topP: 0.95,
-			maxOutputTokens: 2048, // Example: Limit output length
-		};
+	let totalChars = 0;
 
-		// The `contents` field expects an array of Content objects.
-		// If a simple string prompt is given, wrap it appropriately.
-		let requestContents: Content[];
+	try {
+		// Prepare contents
+		let contents: Content[];
 		if (typeof prompt === "string") {
-			requestContents = [{ role: "user", parts: [{ text: prompt }] }];
+			contents = [{ role: "user", parts: [{ text: prompt }] }];
 		} else if (Array.isArray(prompt)) {
-			requestContents = prompt.map((p) =>
-				typeof p === "string" ? { role: "user", parts: [{ text: p }] } : p
-			);
+			contents = prompt;
 		} else {
-			// Single Content object
-			requestContents = [prompt];
+			contents = [prompt];
 		}
 
-		const stream = await model.generateContentStream({
-			model: GEMINI_MODEL_NAME,
-			contents: requestContents,
-			config: generationConfig,
+		// Stream generation
+		const stream = await genAI.models.generateContentStream({
+			model: MODEL_NAME,
+			contents,
+			config: {
+				temperature: 0.7,
+				topP: 0.95,
+				maxOutputTokens: 2048,
+			},
 		});
 
+		// Process stream
 		for await (const chunk of stream) {
-			if (abortSignal?.aborted) {
-				// console.log("Gemini stream aborted by client.");
-				// The error will be thrown by the fetch mechanism on the client side
-				// or handled by the ReadableStream controller.
-				// No explicit error needs to be thrown here for the stream to stop.
-				break;
-			}
+			if (config.abortSignal?.aborted) break;
+
 			const text = chunk.text;
 			if (text) {
-				onChunk(text);
+				totalChars += text.length;
+				config.onChunk(text);
 			}
 		}
+
+		// Calculate tokens and cost
+		const tokensUsed = Math.ceil(totalChars / CHARS_PER_TOKEN);
+		const cost = tokensUsed * COST_PER_TOKEN;
+
+		config.onComplete(tokensUsed, cost);
 	} catch (error) {
-		console.error("Error streaming Gemini response:", error);
-		if (error instanceof Error) {
-			onError(error);
-		} else {
-			onError(new Error("Unknown error during Gemini stream."));
-		}
-	} finally {
-		onComplete();
+		console.error("Gemini streaming error:", error);
+		config.onError(error instanceof Error ? error : new Error("Unknown error"));
+		config.onComplete(0, 0);
 	}
 }
 
-// --- Prompt Engineering Functions ---
-
-export function createSimilarQuestionsPrompt(
-	currentQuestionContent: string,
-	existingQuestionsContext?: string // Optional: context of other questions in the group
-): string {
-	// Simplified prompt for finding similar questions.
-	// The AI should focus on semantic similarity.
-	// This prompt might be better handled by embedding techniques + vector search for large scale,
-	// but for a direct LLM approach:
-	return `
-Context:
-You are an AI assistant helping users find questions similar to one they are interested in.
-The goal is to identify questions that cover the same topic, ask about related concepts, or seek similar information.
-
-Current Question:
-"${currentQuestionContent}"
-
-${
-	existingQuestionsContext
-		? `
-Consider these other questions from the same space for context (do not suggest these exact ones unless they are truly the most similar and distinct from the current one):
-${existingQuestionsContext}
-`
-		: ""
-}
-
-Task:
-Based *only* on the "Current Question", generate 3 distinct questions that are semantically similar or closely related to it.
-The generated questions should be phrased naturally, as if a user asked them.
-Output each question on a new line. Do not number them or add any other text.
-Ensure the generated questions are in the same language as the "Current Question".
-`;
-}
-
-export function createGenerateQuestionPrompt(
+// Generate questions with streaming
+export async function generateQuestionsStream(
 	topic: string,
-	existingUserQuestion?: string | null
-): string {
-	// Using a structure similar to your original createGeminiPrompt
-	const promptTemplate = `
-**Role:** You are an AI assistant specialized in question generation.
+	context: string | undefined,
+	count: number,
+	config: StreamConfig
+): Promise<void> {
+	const prompt = `Generate ${count} thoughtful questions about "${topic}".
+${context ? `Context: ${context}` : ""}
 
-**Objective:**
-Generate a single, concise, and relevant question about a given topic.
-If an \`[EXISTING_USER_QUESTION]\` is provided, your new question should aim to be an improvement, refinement, a deeper dive, or a logical follow-up to it, while still being related to the \`[TOPIC]\`.
+Format each question as JSON with "title" (short, 1-2 sentences) and "content" (detailed explanation).
+Make questions open-ended and thought-provoking.
 
-**Instructions:**
+Response format: 
+[{"title": "...", "content": "..."}, ...]`;
 
-1.  You will receive a \`[TOPIC]\` as input.
-2.  You *may* also receive an \`[EXISTING_USER_QUESTION]\`.
-3.  Based on these inputs, formulate **one new insightful question**.
-4.  **If \`[EXISTING_USER_QUESTION]\` is provided and is not "None provided.":**
-    *   Analyze the \`[EXISTING_USER_QUESTION]\`.
-    *   Generate a *new* question that builds upon it, makes it more specific, explores a related nuance, or asks a more advanced/probing question on the same sub-theme.
-    *   Do NOT simply rephrase the \`[EXISTING_USER_QUESTION]\` unless the rephrasing significantly improves clarity, focus, or depth.
-    *   Your generated question should still clearly relate to the main \`[TOPIC]\`.
-5.  **If \`[EXISTING_USER_QUESTION]\` is "None provided." or absent:**
-    *   Generate a general insightful question about the \`[TOPIC]\`.
-6.  **Language Strictness (Crucial):** The generated question MUST be in the *exact same language* as the provided \`[TOPIC]\`.
-7.  **Conciseness:** The new question should be 1-2 sentences long.
-8.  **Output:** Provide *only* the newly generated question, without any additional preamble or explanation.
-
-**Input:**
-
-Topic: \`{{TOPIC_PLACEHOLDER}}\`
-Existing User Question: \`{{EXISTING_QUESTION_PLACEHOLDER}}\`
-
-**Your Generated Question:**
-`;
-	let finalPrompt = promptTemplate.replace("{{TOPIC_PLACEHOLDER}}", topic);
-	finalPrompt = finalPrompt.replace(
-		"{{EXISTING_QUESTION_PLACEHOLDER}}",
-		existingUserQuestion && existingUserQuestion.trim() !== ""
-			? existingUserQuestion
-			: "None provided."
-	);
-	return finalPrompt;
+	await streamGeminiResponse(prompt, config);
 }
 
-export function createGenerateAnswerPrompt(
+// Generate answer with streaming
+export async function generateAnswerStream(
+	questionContent: string,
+	questionTitle: string,
+	additionalContext: string | undefined,
+	config: StreamConfig
+): Promise<void> {
+	const prompt = createGenerateAnswerPrompt(
+		`${
+			questionTitle ? `Title: ${questionTitle}\n` : ""
+		}Question: ${questionContent}`,
+		additionalContext
+	);
+
+	await streamGeminiResponse(prompt, config);
+}
+
+// Find similar questions (non-streaming due to JSON parsing requirement)
+export async function findSimilarQuestions(
+	queryText: string,
+	questions: Question[],
+	limit: number = 5
+): Promise<{
+	questions: Question[];
+	tokensUsed: number;
+	cost: number;
+}> {
+	if (!genAI) {
+		throw new Error("Gemini API client not initialized");
+	}
+
+	const questionsContext = questions
+		.slice(0, 20) // Limit context size
+		.map((q, i) => `${i + 1}. ${q.title || q.content.substring(0, 100)}`)
+		.join("\n");
+
+	const prompt = createSimilarQuestionsPrompt(queryText, questionsContext);
+
+	const response = await genAI.models.generateContent({
+		model: MODEL_NAME,
+		contents: prompt,
+		config: {
+			temperature: 0.3,
+			maxOutputTokens: 500,
+		},
+	});
+
+	const text = response.text;
+	if (!text) {
+		throw new Error("No response text received from Gemini API");
+	}
+
+	// Parse similar question indices from response
+	const lines = text.trim().split("\n").filter(Boolean);
+	const similarQuestions: Question[] = [];
+
+	for (const line of lines.slice(0, limit)) {
+		// Try to find matching question in original list
+		const matchedQuestion = questions.find(
+			(q) =>
+				(q.title && line.includes(q.title)) ||
+				line.includes(q.content.substring(0, 50))
+		);
+		if (matchedQuestion) {
+			similarQuestions.push(matchedQuestion);
+		}
+	}
+
+	const tokensUsed = Math.ceil(text.length / CHARS_PER_TOKEN);
+	const cost = tokensUsed * COST_PER_TOKEN;
+
+	return { questions: similarQuestions, tokensUsed, cost };
+}
+
+// Prompt engineering functions
+function createGenerateAnswerPrompt(
 	questionContent: string,
 	context?: string
 ): string {
-	return `
-**Role:** You are a helpful AI assistant.
+	return `**Role:** You are a helpful AI assistant.
 
 **Objective:**
-Provide a comprehensive, clear, and helpful answer to the given \`[QUESTION]\`.
-If \`[ADDITIONAL_CONTEXT]\` is provided, use it to enhance the relevance and accuracy of your answer.
+Provide a comprehensive, clear, and helpful answer to the given question.
+${context ? "Use the additional context to enhance your answer." : ""}
 
 **Instructions:**
+1. Analyze the question thoroughly.
+2. Provide a well-structured and informative answer.
+3. Use clear, easy-to-understand language.
+4. Include relevant examples if helpful.
+5. Maintain the same language as the question.
 
-1.  Analyze the \`[QUESTION]\` thoroughly.
-2.  If \`[ADDITIONAL_CONTEXT]\` is available, consider it to tailor your response.
-3.  Formulate a helpful and informative answer.
-4.  The answer should be well-structured and easy to understand.
-5.  Maintain the language of the original \`[QUESTION]\`. Do not translate.
-6.  **Output:** Provide *only* the answer text, without any preamble like "Here's an answer:".
+**Question:**
+${questionContent}
 
-**Input:**
+${context ? `**Additional Context:**\n${context}` : ""}
 
-Question:
-\`${questionContent}\`
+**Your Answer:**`;
+}
+
+function createSimilarQuestionsPrompt(
+	currentQuestion: string,
+	existingQuestionsContext?: string
+): string {
+	return `You are an AI assistant helping find similar questions.
+
+**Current Question:**
+"${currentQuestion}"
 
 ${
-	context && context.trim() !== ""
-		? `
-Additional Context:
-\`${context}\`
-`
+	existingQuestionsContext
+		? `**Existing Questions:**\n${existingQuestionsContext}`
 		: ""
 }
 
-**Your Answer:**
-`;
+**Task:**
+Generate 3-5 questions that are semantically similar or related to the current question.
+- Questions should explore similar topics or concepts
+- Each question should be distinct and naturally phrased
+- Output one question per line
+- Use the same language as the current question`;
 }
+
+/**
+ * Usage Examples:
+ *
+ * // Stream question generation
+ * await generateQuestionsStream(
+ *   "React performance",
+ *   "For e-commerce apps",
+ *   3,
+ *   {
+ *     onChunk: (text) => console.log(text),
+ *     onError: (error) => console.error(error),
+ *     onComplete: (tokens, cost) => console.log(`Used ${tokens} tokens, cost: $${cost}`),
+ *   }
+ * );
+ *
+ * // Stream answer generation
+ * await generateAnswerStream(
+ *   "How to optimize React re-renders?",
+ *   "React Performance",
+ *   "Using React 18",
+ *   {
+ *     onChunk: (text) => response.write(text),
+ *     onError: (error) => response.end(),
+ *     onComplete: (tokens, cost) => logUsage(tokens, cost),
+ *   }
+ * );
+ */

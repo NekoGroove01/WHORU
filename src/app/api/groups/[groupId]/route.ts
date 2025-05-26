@@ -1,148 +1,110 @@
-// src/app/api/groups/[groupId]/route.ts
-import { NextResponse, type NextRequest } from "next/server";
-import { ObjectId } from "mongodb";
-import bcrypt from "bcrypt";
-import { connectToDatabase } from "@/utils/mongodb";
-import { GroupManagementAuthSchema, MongoIdSchema } from "@/utils/schemas";
-import type { Group } from "@/types/group";
-import type { DbGroup } from "@/types/schemas/group";
+import { NextResponse } from "next/server";
+import { GroupsCollection } from "@/lib/db/collections/groups";
+import { UpdateGroupSchema } from "@/types/schemas/group";
+import { validateRequest } from "@/middleware/validation";
+import { withErrorHandler, NotFoundError } from "@/middleware/errorHandler";
+import z from "zod";
 
-// Helper to map DB document to frontend Group type
-// For detail view, accessKey for private groups might be exposed (e.g. to admin)
-function mapDbGroupToGroupDetail(dbGroup: DbGroup): Group {
-	return {
-		id: dbGroup._id.toHexString(),
-		name: dbGroup.name,
-		description: dbGroup.description ?? null,
-		isPublic: dbGroup.isPublic,
-		// Only include accessKey if the group is private.
-		// Public groups don't use it for joining.
-		// The creator/admin would need to know this for sharing.
-		accessKey: dbGroup.isPublic ? undefined : dbGroup.accessKey,
-		tags: dbGroup.tags ?? [],
-		questionCount: dbGroup.questionCount,
-		lastActivityAt: dbGroup.lastActivityAt.toISOString(),
-		createdAt: dbGroup.createdAt.toISOString(),
-		updatedAt: dbGroup.updatedAt.toISOString(),
-	};
-}
+type RouteParams = {
+	params: { groupId: string };
+};
 
-export async function GET(
-	request: NextRequest,
-	{ params }: { params: { groupId: string } }
-) {
-	try {
-		const groupIdValidation = MongoIdSchema.safeParse(params.groupId);
-		if (!groupIdValidation.success) {
-			return NextResponse.json(
-				{ message: "Invalid group ID format" },
-				{ status: 400 }
-			);
-		}
-		const groupId = new ObjectId(groupIdValidation.data);
-
-		const { db } = await connectToDatabase();
-		const group = await db
-			.collection<DbGroup>("groups")
-			.findOne({ _id: groupId });
-
-		if (!group) {
-			return NextResponse.json({ message: "Group not found" }, { status: 404 });
-		}
-
-		// If group is private, we might not want to return all details
-		// without some form of auth. For now, returning basic public view.
-		// If it's a direct fetch by ID, user might know it exists.
-		// The `accessKey` is handled by the mapper.
+// GET /api/groups/[groupId] - Get specific group
+export const GET = withErrorHandler<RouteParams>(async (req, context) => {
+	// Validate groupId parameter
+	if (!context?.params?.groupId) {
 		return NextResponse.json(
-			{ group: mapDbGroupToGroupDetail(group) },
-			{ status: 200 }
-		);
-	} catch (error) {
-		console.error("Failed to fetch group:", error);
-		return NextResponse.json(
-			{ message: "Internal server error" },
-			{ status: 500 }
+			{ error: "Group ID is required" },
+			{ status: 400 }
 		);
 	}
-}
 
-export async function DELETE(
-	request: NextRequest,
-	{ params }: { params: { groupId: string } }
-) {
-	try {
-		const groupIdValidation = MongoIdSchema.safeParse(params.groupId);
-		if (!groupIdValidation.success) {
+	const group = await GroupsCollection.findById(context?.params?.groupId);
+
+	if (!group) {
+		throw new NotFoundError("Group not found");
+	}
+
+	// Check access if private
+	if (!group.isPublic) {
+		const accessKey = req.headers.get("x-access-key");
+		if (!accessKey || group.accessKey !== accessKey) {
+			return NextResponse.json({ error: "Access denied" }, { status: 403 });
+		}
+	}
+
+	return NextResponse.json({
+		id: group._id,
+		name: group.name,
+		description: group.description,
+		isPublic: group.isPublic,
+		tags: group.tags,
+		questionCount: group.questionCount,
+		lastActivityAt: group.lastActivityAt,
+		createdAt: group.createdAt,
+		updatedAt: group.updatedAt,
+	});
+});
+
+// PUT /api/groups/[groupId] - Update group
+export const PUT = withErrorHandler<RouteParams>(
+	validateRequest(UpdateGroupSchema)(async (req, context) => {
+		const { adminPassword, ...updateData } = req.validatedData!;
+
+		// Validate groupId parameter
+		if (!context?.params?.groupId) {
 			return NextResponse.json(
-				{ message: "Invalid group ID format" },
+				{ error: "Group ID is required" },
 				{ status: 400 }
 			);
 		}
-		const validGroupId = new ObjectId(groupIdValidation.data);
 
-		const body = await request.json();
-		const authValidation = GroupManagementAuthSchema.safeParse(body);
-
-		if (!authValidation.success) {
-			return NextResponse.json(
-				{
-					message: "Invalid input for deletion",
-					errors: authValidation.error.flatten().fieldErrors,
-				},
-				{ status: 400 }
-			);
-		}
-		const { managementPassword } = authValidation.data;
-
-		const { db } = await connectToDatabase();
-		const groupsCollection = db.collection<DbGroup>("groups");
-		const group = await groupsCollection.findOne({ _id: validGroupId });
-
-		if (!group) {
-			return NextResponse.json({ message: "Group not found" }, { status: 404 });
-		}
-
-		const isPasswordValid = await bcrypt.compare(
-			managementPassword,
-			group.managementPasswordHash
+		const group = await GroupsCollection.update(
+			context?.params?.groupId,
+			updateData,
+			adminPassword
 		);
 
-		if (!isPasswordValid) {
-			return NextResponse.json(
-				{ message: "Invalid management password" },
-				{ status: 403 }
-			);
+		if (!group) {
+			throw new NotFoundError("Group not found");
 		}
 
-		// Transaction recommended here in production for atomicity
-		// For simplicity, performing sequential deletes:
-		await db.collection("answers").deleteMany({ groupId: validGroupId });
-		await db.collection("questions").deleteMany({ groupId: validGroupId });
-		const deleteResult = await groupsCollection.deleteOne({
-			_id: validGroupId,
+		return NextResponse.json({
+			id: group._id,
+			name: group.name,
+			description: group.description,
+			isPublic: group.isPublic,
+			tags: group.tags,
+			updatedAt: group.updatedAt,
 		});
+	})
+);
 
-		if (deleteResult.deletedCount === 0) {
-			// Should not happen if group was found and password was valid
+// DELETE /api/groups/[groupId] - Delete group
+const DeleteSchema = z.object({
+	adminPassword: z.string().min(6),
+});
+
+export const DELETE = withErrorHandler<RouteParams>(
+	validateRequest(DeleteSchema)(async (req, context) => {
+		// Validate groupId parameter
+		if (!context?.params?.groupId) {
 			return NextResponse.json(
-				{
-					message:
-						"Failed to delete group, group might have been deleted already",
-				},
-				{ status: 500 }
+				{ error: "Group ID is required" },
+				{ status: 400 }
 			);
 		}
+		const { adminPassword } = req.validatedData!;
 
-		return NextResponse.json(
-			{ message: "Group and associated content deleted successfully" },
-			{ status: 200 }
+		const deleted = await GroupsCollection.delete(
+			context?.params?.groupId,
+			adminPassword
 		);
-	} catch (error) {
-		console.error("Failed to delete group:", error);
-		return NextResponse.json(
-			{ message: "Internal server error" },
-			{ status: 500 }
-		);
-	}
-}
+
+		if (!deleted) {
+			throw new NotFoundError("Group not found");
+		}
+
+		return NextResponse.json({ success: true });
+	})
+);

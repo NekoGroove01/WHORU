@@ -2,7 +2,6 @@
 export interface Answer {
 	id: string; // MongoDB _id as string
 	questionId: string;
-	groupId: string; // For context, denormalized
 	content: string;
 	authorNickname: string; // Temporary nickname
 	upvotes: number;

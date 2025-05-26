@@ -1,25 +1,77 @@
-import { NextRequest, NextResponse } from "next/server";
-import { GenerateQuestionSchema } from "@/utils/schemas";
-import { createGenerateQuestionPrompt } from "@/utils/geminiService";
-import { createStreamingResponse } from "@/utils/streamUtils"
+import { NextResponse } from "next/server";
+import { AIUsageLogsCollection } from "@/lib/db/collections/aiUsageLogs";
+import { generateQuestionsStream } from "@/utils/geminiService";
+import { validateRequest } from "@/middleware/validation";
+import { withErrorHandler } from "@/middleware/errorHandler";
+import z from "zod";
 
-export async function POST(request: NextRequest) {
-	try {
-		const body = await request.json();
-		const validation = GenerateQuestionSchema.safeParse(body);
+const GenerateQuestionSchema = z.object({
+	groupId: z.string(),
+	topic: z.string().max(200),
+	context: z.string().max(1000).optional(),
+	count: z.number().int().min(1).max(5).default(3),
+});
 
-		if (!validation.success) {
+// POST /api/ai/generate-question - Generate questions with streaming
+export const POST = withErrorHandler(
+	validateRequest(GenerateQuestionSchema)(async (req) => {
+		const data = req.validatedData!;
+		const userIdentifier = req.headers.get("x-forwarded-for") || "anonymous";
+
+		// Check usage limits
+		const usageCount = await AIUsageLogsCollection.getUsageCount(
+			userIdentifier,
+			"generate_question",
+			undefined,
+			new Date(Date.now() - 24 * 60 * 60 * 1000)
+		);
+
+		if (usageCount >= 10) {
 			return NextResponse.json(
-				{ message: "Invalid input", errors: validation.error.errors },
-				{ status: 400 }
+				{ error: "Daily usage limit exceeded" },
+				{ status: 429 }
 			);
 		}
 
-		const { topic, context: existingUserQuestion /*, groupId */ } =
-			validation.data;
+		// Create streaming response
+		const encoder = new TextEncoder();
+		const stream = new ReadableStream({
+			async start(controller) {
+				let fullResponse = "";
+				let tokensUsed = 0;
+				let cost = 0;
 
-		const prompt = createGenerateQuestionPrompt(topic, existingUserQuestion);
-		const stream = createStreamingResponse(prompt, request.signal);
+				await generateQuestionsStream(data.topic, data.context, data.count, {
+					onChunk: (text) => {
+						fullResponse += text;
+						controller.enqueue(encoder.encode(text));
+					},
+					onError: (error) => {
+						controller.enqueue(encoder.encode(`\n\nError: ${error.message}`));
+						controller.close();
+					},
+					onComplete: async (tokens, totalCost) => {
+						tokensUsed = tokens;
+						cost = totalCost;
+
+						// Log usage after completion
+						await AIUsageLogsCollection.create({
+							groupId: data.groupId,
+							usageType: "generate_question",
+							userIdentifier,
+							prompt: `Topic: ${data.topic}, Context: ${
+								data.context || "None"
+							}`,
+							response: fullResponse,
+							tokensUsed,
+							cost,
+						});
+
+						controller.close();
+					},
+				});
+			},
+		});
 
 		return new NextResponse(stream, {
 			headers: {
@@ -27,18 +79,5 @@ export async function POST(request: NextRequest) {
 				"X-Content-Type-Options": "nosniff",
 			},
 		});
-	} catch (error) {
-		console.error("[AI Generate Question Error]:", error);
-		if (error instanceof SyntaxError) {
-			// JSON parsing error
-			return NextResponse.json(
-				{ message: "Invalid JSON payload" },
-				{ status: 400 }
-			);
-		}
-		return NextResponse.json(
-			{ message: "Internal server error generating question" },
-			{ status: 500 }
-		);
-	}
-}
+	})
+);
