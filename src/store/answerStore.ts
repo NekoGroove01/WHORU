@@ -1,16 +1,50 @@
 // answerStore.ts
+import axios from "axios";
 import { create } from "zustand";
-import { nanoid } from "nanoid";
 import { Answer } from "@/types/answer";
+
+interface AnswerData {
+	questionId: string;
+	content: string;
+	authorNickname: string;
+	authorPassword: string;
+	mediaIds?: string[];
+}
 
 type AnswerState = {
 	answers: Answer[];
 	isLoading: boolean;
 	error: string | null;
-	fetchAnswers: (questionId: string) => Promise<void>;
-	addAnswer: (answer: Omit<Answer, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+	fetchAnswers: (questionId: string, page?: number) => Promise<void>;
+	addAnswer: (
+		answer: AnswerData
+	) => Promise<{ success: boolean; error: string | null }>;
+	updateAnswer: (
+		answerId: string,
+		content: string,
+		authorPassword: string
+	) => Promise<{ success: boolean; error: string | null }>;
+	deleteAnswer: (
+		answerId: string,
+		authorPassword: string
+	) => Promise<{ success: boolean; error: string | null }>;
 	upvoteAnswer: (answerId: string) => void;
 	acceptAnswer: (answerId: string) => void;
+	// API methods for real-time operations
+	upvoteAnswerAPI: (
+		answerId: string
+	) => Promise<{ success: boolean; error: string | null }>;
+	acceptAnswerAPI: (
+		answerId: string,
+		questionId: string,
+		questionAuthorPassword: string
+	) => Promise<{ success: boolean; error: string | null }>;
+	// Real-time update methods for Socket.IO
+	addAnswerRealtime: (answer: Answer) => void;
+	updateAnswerRealtime: (answerId: string, content: string) => void;
+	deleteAnswerRealtime: (answerId: string) => void;
+	voteAnswerRealtime: (answerId: string, upvotes: number) => void;
+	acceptAnswerRealtime: (answerId: string) => void;
 };
 
 export const useAnswerStore = create<AnswerState>((set) => ({
@@ -18,28 +52,21 @@ export const useAnswerStore = create<AnswerState>((set) => ({
 	isLoading: false,
 	error: null,
 
-	fetchAnswers: async (questionId: string) => {
+	fetchAnswers: async (questionId: string, page = 1) => {
 		set({ isLoading: true, error: null });
 		try {
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 800));
+			// API call
+			const response = await axios.get(
+				`/api/answers/question/${questionId}?=page=${page}&limit=10`
+			);
 
-			// Mock data
-			const mockAnswers: Answer[] = Array.from({ length: 5 }, (_, i) => ({
-				id: `${nanoid(10)}-${i}`,
-				questionId,
-				groupId: `group-${i}`,
-				content: `This is a sample answer ${
-					i + 1
-				}. It explains how to approach the problem described in the question. The explanation includes specific details and examples to make it more helpful.`,
-				authorNickname: `Anonymous${i + 1}`,
-				upvotes: Math.floor(Math.random() * 15),
-				isAccepted: i === 0, // First answer is accepted
-				createdAt: new Date(Date.now() - i * 3600000).toISOString(),
-				updatedAt: new Date(Date.now() - i * 3600000).toISOString(),
-			}));
+			if (!response.data.answers || !Array.isArray(response.data.answers)) {
+				throw new Error("Invalid response format");
+			}
 
-			set({ answers: mockAnswers, isLoading: false });
+			const newAnswers = response.data.answers;
+
+			set({ answers: newAnswers, isLoading: false });
 		} catch (error) {
 			console.error("Failed to fetch answers:", error);
 			set({
@@ -51,46 +78,239 @@ export const useAnswerStore = create<AnswerState>((set) => ({
 
 	addAnswer: async (answerData) => {
 		try {
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 600));
+			// API call
+			const response = await axios.post("/api/answers", answerData);
 
-			const newAnswer: Answer = {
-				...answerData,
-				id: nanoid(),
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			};
+			if (response.status !== 200 || !response.data) {
+				throw new Error("Invalid response format");
+			}
+
+			const newAnswer: Answer = response.data;
 
 			set((state) => ({
 				answers: [...state.answers, newAnswer],
 			}));
+			return { success: true, error: null };
 		} catch (error) {
 			console.error("Failed to add answer:", error);
 			set({ error: "Failed to post your answer. Please try again." });
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Post failed",
+			};
+		}
+	},
+
+	updateAnswer: async (answerId, content, authorPassword) => {
+		try {
+			// API call
+			const response = await axios.put(`/api/answers/${answerId}`, {
+				content,
+				authorPassword,
+			});
+
+			if (response.status !== 200) {
+				throw new Error(response.data.error || "Update failed");
+			}
+
+			set((state) => ({
+				answers: state.answers.map((answer) =>
+					answer.id === answerId ? { ...answer, content } : answer
+				),
+			}));
+
+			return { success: true, error: null };
+		} catch (error) {
+			console.error("Failed to update answer:", error);
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: "Failed to update answer. Please try again.";
+			set({
+				error: errorMessage,
+			});
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Update failed",
+			};
+		}
+	},
+
+	deleteAnswer: async (answerId: string, authorPassword: string) => {
+		try {
+			const response = await axios.delete(`/api/answers/${answerId}`, {
+				data: { authorPassword },
+			});
+
+			if (response.status !== 200) {
+				throw new Error(response.data.error || "Delete failed");
+			}
+
+			set((state) => ({
+				answers: state.answers.filter((answer) => answer.id !== answerId),
+			}));
+
+			return { success: true, error: null };
+		} catch (error) {
+			console.error("Failed to delete answer:", error);
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: "Failed to delete answer. Please try again.";
+			set({ error: errorMessage });
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Delete failed",
+			};
 		}
 	},
 
 	upvoteAnswer: (answerId) => {
 		set((state) => {
 			// Find the answer to ensure it exists
-			const answerExists = state.answers.some(answer => answer.id === answerId);
-			
+			const answerExists = state.answers.some(
+				(answer) => answer.id === answerId
+			);
+
 			if (!answerExists) {
 				console.debug(`Answer with id ${answerId} not found`);
 				return state;
 			}
-			
+
 			return {
-				answers: state.answers.map((answer) => 
-					answer.id === answerId 
+				answers: state.answers.map((answer) =>
+					answer.id === answerId
 						? { ...answer, upvotes: answer.upvotes + 1 }
 						: answer
-				)
+				),
 			};
 		});
 	},
 
 	acceptAnswer: (answerId) => {
+		set((state) => ({
+			answers: state.answers.map((answer) => ({
+				...answer,
+				isAccepted: answer.id === answerId,
+			})),
+		}));
+	},
+
+	// API methods for real-time operations
+	upvoteAnswerAPI: async (answerId) => {
+		try {
+			// Immediately update local state for instant feedback
+			set((state) => {
+				const answerExists = state.answers.some(
+					(answer) => answer.id === answerId
+				);
+
+				if (!answerExists) {
+					console.debug(`Answer with id ${answerId} not found`);
+					return state;
+				}
+
+				return {
+					answers: state.answers.map((answer) =>
+						answer.id === answerId
+							? { ...answer, upvotes: answer.upvotes + 1 }
+							: answer
+					),
+				};
+			});
+
+			const response = await axios.post(`/api/answers/${answerId}/vote`, {
+				voteType: "upvote",
+			});
+
+			if (response.status !== 200) {
+				// Revert the optimistic update on API failure
+				set((state) => ({
+					answers: state.answers.map((answer) =>
+						answer.id === answerId
+							? { ...answer, upvotes: answer.upvotes - 1 }
+							: answer
+					),
+				}));
+				throw new Error("Vote failed");
+			}
+
+			return { success: true, error: null };
+		} catch (error) {
+			console.error("Failed to vote on answer:", error);
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: "Failed to vote. Please try again.";
+			set({ error: errorMessage });
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Vote failed",
+			};
+		}
+	},
+
+	acceptAnswerAPI: async (answerId, questionId, questionAuthorPassword) => {
+		try {
+			const response = await axios.post(
+				`/api/questions/${questionId}/accept-answer`,
+				{
+					answerId,
+					questionAuthorPassword,
+				}
+			);
+
+			if (response.status !== 200) {
+				throw new Error(response.data.error || "Accept failed");
+			}
+
+			return { success: true, error: null };
+		} catch (error) {
+			console.error("Failed to accept answer:", error);
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: "Failed to accept answer. Please try again.";
+			set({ error: errorMessage });
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Accept failed",
+			};
+		}
+	},
+
+	// Real-time update methods for Socket.IO
+	addAnswerRealtime: (answer) => {
+		set((state) => ({
+			answers: [...state.answers, answer],
+		}));
+	},
+
+	updateAnswerRealtime: (answerId, content) => {
+		set((state) => ({
+			answers: state.answers.map((answer) =>
+				answer.id === answerId
+					? { ...answer, content, updatedAt: new Date().toISOString() }
+					: answer
+			),
+		}));
+	},
+
+	deleteAnswerRealtime: (answerId) => {
+		set((state) => ({
+			answers: state.answers.filter((answer) => answer.id !== answerId),
+		}));
+	},
+
+	voteAnswerRealtime: (answerId, upvotes) => {
+		set((state) => ({
+			answers: state.answers.map((answer) =>
+				answer.id === answerId ? { ...answer, upvotes } : answer
+			),
+		}));
+	},
+
+	acceptAnswerRealtime: (answerId) => {
 		set((state) => ({
 			answers: state.answers.map((answer) => ({
 				...answer,

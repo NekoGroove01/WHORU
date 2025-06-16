@@ -1,21 +1,135 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
 import { staggerContainer, fadeIn } from "@/utils/basicMotion";
 import { GroupCard } from "@/components/browse/GroupCard";
-
-// Group type definition
-type Group = {
-	id: string;
-	name: string;
-	description: string;
-	memberCount: number;
-	questionCount: number;
-	tags: string[];
-	isActive: boolean;
-};
+import type { Group } from "@/types/group";
+import axios from "axios";
 
 export function GroupSection() {
+	// State management for groups data
+	const [groups, setGroups] = useState<Group[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	// Fetch popular groups on component mount
+	useEffect(() => {
+		const fetchPopularGroups = async () => {
+			try {
+				setIsLoading(true);
+				setError(null);
+
+				// Fetch first 6 public groups (most popular)
+				const response = await axios.get("/api/groups", {
+					params: {
+						page: 1,
+						limit: 6,
+					},
+				});
+
+				// Assuming the API returns { groups: Group[], total: number, page: number, limit: number }
+				setGroups(response.data.groups ?? []);
+			} catch (err) {
+				console.error("Error fetching popular groups:", err);
+				setError(err instanceof Error ? err.message : "Failed to load groups");
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchPopularGroups();
+	}, []);
+
+	// Loading state
+	if (isLoading) {
+		return (
+			<section className="py-20 bg-white dark:bg-gray-900 relative">
+				<div className="container mx-auto px-6">
+					<div className="text-center mb-12">
+						<h2 className="mb-4 text-3xl md:text-4xl font-semibold">
+							Popular Groups
+						</h2>
+						<p className="max-w-2xl mx-auto text-gray-600 dark:text-gray-400">
+							Loading active Q&A spaces...
+						</p>
+					</div>
+
+					{/* Loading skeleton */}
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						{[...Array(6)].map((_, index) => (
+							<div
+								key={index}
+								className="bg-gray-100 dark:bg-gray-800 rounded-lg h-48 animate-pulse"
+							/>
+						))}
+					</div>
+				</div>
+			</section>
+		);
+	}
+
+	// Error state
+	if (error) {
+		return (
+			<section className="py-20 bg-white dark:bg-gray-900 relative">
+				<div className="container mx-auto px-6">
+					<div className="text-center">
+						<h2 className="mb-4 text-3xl md:text-4xl font-semibold">
+							Popular Groups
+						</h2>
+						<p className="text-red-500 dark:text-red-400 mb-8">{error}</p>
+						<button
+							onClick={() => window.location.reload()}
+							className="btn-secondary"
+						>
+							Try Again
+						</button>
+					</div>
+				</div>
+			</section>
+		);
+	}
+
+	// Empty state
+	if (groups.length === 0) {
+		return (
+			<section className="py-20 bg-white dark:bg-gray-900 relative">
+				<div className="container mx-auto px-6">
+					<motion.div
+						initial="hidden"
+						whileInView="visible"
+						viewport={{ once: true, margin: "-100px" }}
+						variants={staggerContainer}
+						className="text-center"
+					>
+						<motion.h2
+							variants={fadeIn}
+							className="mb-4 text-3xl md:text-4xl font-semibold"
+						>
+							No Groups Yet
+						</motion.h2>
+						<motion.p
+							variants={fadeIn}
+							className="max-w-2xl mx-auto text-gray-600 dark:text-gray-400 mb-8"
+						>
+							Be the first to create a Q&A space and start the conversation.
+						</motion.p>
+						<motion.div variants={fadeIn}>
+							<Link
+								href="/create"
+								className="btn-primary inline-flex items-center"
+							>
+								Create First Group <FaArrowRight className="ml-2" />
+							</Link>
+						</motion.div>
+					</motion.div>
+				</div>
+			</section>
+		);
+	}
+
+	// Main render with fetched groups
 	return (
 		<section className="py-20 bg-white dark:bg-gray-900 relative">
 			<div className="container mx-auto px-6">
@@ -26,7 +140,10 @@ export function GroupSection() {
 					variants={staggerContainer}
 					className="text-center mb-12"
 				>
-					<motion.h2 variants={fadeIn} className="mb-4">
+					<motion.h2
+						variants={fadeIn}
+						className="mb-4 text-3xl md:text-4xl font-semibold"
+					>
 						Popular Groups
 					</motion.h2>
 					<motion.p
@@ -45,9 +162,9 @@ export function GroupSection() {
 					variants={fadeIn}
 					className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
 				>
-					{popularGroups.map((group) => {
-						return <GroupCard key={group.id} group={group} />;
-					})}
+					{groups.map((group) => (
+						<GroupCard key={group.id} group={group} />
+					))}
 				</motion.div>
 
 				<motion.div
@@ -72,67 +189,3 @@ export function GroupSection() {
 		</section>
 	);
 }
-
-// Dummy data for popular groups
-const popularGroups: Group[] = [
-	{
-		id: "8Fn2JgUWUn57lPGk7L2b3",
-		name: "Tech Talk",
-		description:
-			"Discuss the latest in technology, gadgets, and programming languages. Ask anything from beginner to advanced topics.",
-		memberCount: 1248,
-		questionCount: 356,
-		tags: ["Technology", "Programming", "Gadgets"],
-		isActive: true,
-	},
-	{
-		id: "k9mT6PwR3sZvE2xH7yA4f",
-		name: "Campus Connect",
-		description:
-			"Anonymous space for university students to ask questions about courses, professors, and campus life.",
-		memberCount: 834,
-		questionCount: 192,
-		tags: ["University", "Education", "Campus"],
-		isActive: true,
-	},
-	{
-		id: "D4qV7xFbG2eN9rMj3kL5s",
-		name: "Startup Founders",
-		description:
-			"A safe space for entrepreneurs to ask sensitive questions about funding, growth, and challenges.",
-		memberCount: 521,
-		questionCount: 147,
-		tags: ["Business", "Startups", "Entrepreneurship"],
-		isActive: false,
-	},
-	{
-		id: "p1bY6cXnT5gH8jQ2rS3zD",
-		name: "Mental Wellbeing",
-		description:
-			"Support community for discussing mental health topics anonymously and without judgment.",
-		memberCount: 976,
-		questionCount: 289,
-		tags: ["Health", "Wellness", "Support"],
-		isActive: true,
-	},
-	{
-		id: "W3mZ5aB9cE7fG4hJ6dK2v",
-		name: "Career Crossroads",
-		description:
-			"Get anonymous feedback on job offers, salary negotiations, workplace conflicts, and career transitions.",
-		memberCount: 1105,
-		questionCount: 423,
-		tags: ["Career", "Jobs", "Professional"],
-		isActive: true,
-	},
-	{
-		id: "R5tY8uN2mP4qL7sV9xC3b",
-		name: "Creative Corner",
-		description:
-			"Share your creative projects and get honest feedback from other artists, writers, and designers.",
-		memberCount: 687,
-		questionCount: 154,
-		tags: ["Art", "Design", "Creative"],
-		isActive: false,
-	},
-];

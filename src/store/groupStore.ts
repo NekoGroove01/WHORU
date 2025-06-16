@@ -1,47 +1,44 @@
 import { create } from "zustand";
 import { Group } from "@/types/group";
+import axios from "axios";
 
 type GroupState = {
 	group: Group | null;
+	status: "idle" | "loading" | "error";
 	setActiveGroup: (group: Group | null) => void;
-	fetchGroup: (id: string) => Promise<void>;
+	fetchGroup: (id: string, accessKey: string | null) => Promise<void>;
 	updateGroup: (updatedGroup: Group) => Promise<void>;
-	deleteGroup: (id: string) => Promise<void>;
+	deleteGroup: (id: string, adminPassword: string) => Promise<void>;
 };
 
 export const useGroupStore = create<GroupState>((set) => ({
 	group: null,
+	status: "loading",
 
 	setActiveGroup: (group) => set({ group }),
 
-	fetchGroup: async (id) => {
+	fetchGroup: async (id, accessKey) => {
 		try {
-			// In a real app, this would be an API call
-			// For now, we'll simulate a fetch with a delay
-			await new Promise((resolve) => setTimeout(resolve, 800));
+			// Get group data from API (params: groupId, x-access-key)
+			const response = await axios.get(`/api/groups/${id}`, {
+				headers: {
+					"x-access-key": accessKey ?? "",
+				},
+			});
 
-			// Mock group data - in real app this would come from API
-			const mockGroup: Group = {
-				id,
-				name: "Design Team Feedback",
-				description:
-					"Anonymous Q&A space for our design team to share thoughts and feedback",
-				isPublic: false,
-				tags: ["Design", "UI/UX", "Feedback", "Product", "Research"],
-				questionCount: 12,
-				lastActivityAt: new Date().toISOString(),
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			};
+			if (!response.data) {
+				throw new Error("Group not found");
+			}
 
-			set({ group: mockGroup });
+			const groupData = response.data;
+			set({ group: groupData, status: "idle" });
 		} catch (error) {
 			console.error("Failed to fetch group:", error);
-			set({ group: null });
+			set({ group: null, status: "error" });
 		}
 	},
 
-	updateGroup: async (updatedGroup: Group) => {
+	updateGroup: async (updatedGroup) => {
 		try {
 			// In a real app, this would be an API call
 			// For now, we'll simulate an update with a delay
@@ -57,18 +54,23 @@ export const useGroupStore = create<GroupState>((set) => ({
 		}
 	},
 
-	deleteGroup: async (id: string) => {
+	deleteGroup: async (id, adminPassword) => {
 		try {
-			// In a real app, this would be an API call
-			// For now, we'll simulate a delete with a delay
-			await new Promise((resolve) => setTimeout(resolve, 800));
+			const response = await axios.delete(`/api/groups/${id}`, {
+				data: { adminPassword },
+			});
+
+			if (response.status !== 200) {
+				throw new Error("Failed to delete group");
+			}
 
 			// Clear the group from the store
-			set({ group: null });
+			set({ group: null, status: "idle" });
 
 			return Promise.resolve();
 		} catch (error) {
 			console.error("Failed to delete group:", error);
+			set({ status: "error" });
 			return Promise.reject(new Error("Failed to delete group"));
 		}
 	},

@@ -4,6 +4,7 @@ import { initializeSocket, joinGroup, leaveGroup } from "@/utils/socketClient";
 import { SOCKET_EVENTS } from "@/lib/socket/events";
 import { useQuestionStore } from "@/store/questionStore";
 import { useAnswerStore } from "@/store/answerStore";
+import { Answer } from "@/types/answer";
 
 // 소켓 이벤트 데이터 타입 정의
 interface QuestionCreatedData {
@@ -41,18 +42,27 @@ interface AnswerCreatedData {
 	};
 }
 
-interface AnswerAcceptedData {
+interface AnswerUpdatedData {
+	questionId: string;
+	answerId: string;
+	content: string;
+	updatedAt: string;
+}
+
+interface AnswerDeletedData {
 	questionId: string;
 	answerId: string;
 }
 
-// 소켓 이벤트 맵 타입
-interface SocketEventMap {
-	[SOCKET_EVENTS.QUESTION_CREATED]: QuestionCreatedData;
-	[SOCKET_EVENTS.QUESTION_UPDATED]: QuestionUpdatedData;
-	[SOCKET_EVENTS.QUESTION_DELETED]: QuestionDeletedData;
-	[SOCKET_EVENTS.ANSWER_CREATED]: AnswerCreatedData;
-	[SOCKET_EVENTS.ANSWER_ACCEPTED]: AnswerAcceptedData;
+interface AnswerVotedData {
+	questionId: string;
+	answerId: string;
+	upvotes: number;
+}
+
+interface AnswerAcceptedData {
+	questionId: string;
+	answerId: string;
 }
 
 // 클라이언트에서 서버로 보내는 이벤트 타입
@@ -121,19 +131,41 @@ export function useSocket(options: UseSocketOptions = {}) {
 
 		const handleAnswerCreated = (data: AnswerCreatedData) => {
 			if (questionStore.question?.id === data.questionId) {
-				answerStore.addAnswer({
+				const newAnswer: Answer = {
+					id: data.answer.id,
 					questionId: data.questionId,
 					content: data.answer.content,
 					authorNickname: data.answer.authorNickname,
 					upvotes: 0,
 					isAccepted: false,
-				});
+					createdAt: data.answer.createdAt,
+					updatedAt: data.answer.createdAt,
+				};
+				answerStore.addAnswerRealtime(newAnswer);
+			}
+		};
+
+		const handleAnswerUpdated = (data: AnswerUpdatedData) => {
+			if (questionStore.question?.id === data.questionId) {
+				answerStore.updateAnswerRealtime(data.answerId, data.content);
+			}
+		};
+
+		const handleAnswerDeleted = (data: AnswerDeletedData) => {
+			if (questionStore.question?.id === data.questionId) {
+				answerStore.deleteAnswerRealtime(data.answerId);
+			}
+		};
+
+		const handleAnswerVoted = (data: AnswerVotedData) => {
+			if (questionStore.question?.id === data.questionId) {
+				answerStore.voteAnswerRealtime(data.answerId, data.upvotes);
 			}
 		};
 
 		const handleAnswerAccepted = (data: AnswerAcceptedData) => {
 			if (data.questionId === questionStore.question?.id) {
-				answerStore.acceptAnswer(data.answerId);
+				answerStore.acceptAnswerRealtime(data.answerId);
 			}
 		};
 
@@ -142,6 +174,9 @@ export function useSocket(options: UseSocketOptions = {}) {
 		socket.on(SOCKET_EVENTS.QUESTION_UPDATED, handleQuestionUpdated);
 		socket.on(SOCKET_EVENTS.QUESTION_DELETED, handleQuestionDeleted);
 		socket.on(SOCKET_EVENTS.ANSWER_CREATED, handleAnswerCreated);
+		socket.on(SOCKET_EVENTS.ANSWER_UPDATED, handleAnswerUpdated);
+		socket.on(SOCKET_EVENTS.ANSWER_DELETED, handleAnswerDeleted);
+		socket.on(SOCKET_EVENTS.ANSWER_VOTED, handleAnswerVoted);
 		socket.on(SOCKET_EVENTS.ANSWER_ACCEPTED, handleAnswerAccepted);
 
 		// Cleanup
@@ -152,6 +187,9 @@ export function useSocket(options: UseSocketOptions = {}) {
 			socket.off(SOCKET_EVENTS.QUESTION_UPDATED, handleQuestionUpdated);
 			socket.off(SOCKET_EVENTS.QUESTION_DELETED, handleQuestionDeleted);
 			socket.off(SOCKET_EVENTS.ANSWER_CREATED, handleAnswerCreated);
+			socket.off(SOCKET_EVENTS.ANSWER_UPDATED, handleAnswerUpdated);
+			socket.off(SOCKET_EVENTS.ANSWER_DELETED, handleAnswerDeleted);
+			socket.off(SOCKET_EVENTS.ANSWER_VOTED, handleAnswerVoted);
 			socket.off(SOCKET_EVENTS.ANSWER_ACCEPTED, handleAnswerAccepted);
 		};
 	}, [answerStore, groupId, onConnect, onDisconnect, questionStore]);

@@ -137,9 +137,14 @@ export class AnswersCollection {
 		return result.deletedCount === 1;
 	}
 
-	static async upvote(id: string): Promise<void> {
+	static async upvote(id: string): Promise<Answer | null> {
 		const collection = await this.getCollection();
-		await collection.updateOne({ _id: id }, { $inc: { upvotes: 1 } });
+		const result = await collection.findOneAndUpdate(
+			{ _id: id },
+			{ $inc: { upvotes: 1 } },
+			{ returnDocument: "after" }
+		);
+		return result ?? null;
 	}
 
 	static async acceptAnswer(

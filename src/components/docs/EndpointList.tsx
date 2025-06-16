@@ -73,7 +73,7 @@ function EndpointDetail({
 			}`}
 		>
 			<button
-				className="flex w-full items-center cursor-pointer p-4 bg-gray-50 dark:bg-gray-750"
+				className="flex w-full items-center cursor-pointer p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
 				onClick={handleToggle}
 			>
 				<div

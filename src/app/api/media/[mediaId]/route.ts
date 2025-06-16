@@ -6,10 +6,10 @@ import {
 	DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { withErrorHandler, NotFoundError } from "@/middleware/errorHandler";
+import { NotFoundError, withErrorHandler } from "@/middleware/withMiddleware";
 
 type RouteParams = {
-	params: { mediaId: string };
+	mediaId: string;
 };
 
 const s3Client = new S3Client({
@@ -21,15 +21,15 @@ const s3Client = new S3Client({
 });
 
 // GET /api/media/[mediaId] - Get media download URL
-export const GET = withErrorHandler<RouteParams>(async (req, context) => {
+export const GET = withErrorHandler<RouteParams>()(async (req, context) => {
+	const params = await context?.params;
 	// Validate mediaId parameter
-	if (!context?.params?.mediaId) {
+	if (!params?.mediaId) {
 		return NextResponse.json(
 			{ error: "Media ID is required" },
 			{ status: 400 }
 		);
 	}
-	const { params } = context;
 	const media = await MediaCollection.findById(params.mediaId);
 
 	if (!media) {
@@ -57,15 +57,15 @@ export const GET = withErrorHandler<RouteParams>(async (req, context) => {
 });
 
 // DELETE /api/media/[mediaId] - Delete media
-export const DELETE = withErrorHandler<RouteParams>(async (req, context) => {
+export const DELETE = withErrorHandler<RouteParams>()(async (req, context) => {
+	const params = await context?.params;
 	// Validate mediaId parameter
-	if (!context?.params?.mediaId) {
+	if (!params?.mediaId) {
 		return NextResponse.json(
 			{ error: "Media ID is required" },
 			{ status: 400 }
 		);
 	}
-	const { params } = context;
 	const media = await MediaCollection.findById(params.mediaId);
 
 	if (!media) {

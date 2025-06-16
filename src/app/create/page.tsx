@@ -1,5 +1,5 @@
 "use client";
-
+import axios from "axios";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +17,7 @@ import {
 } from "react-icons/fa";
 import { nanoid } from "nanoid";
 import { useBackNavigation } from "../../hooks/useBackNavigation";
+import { useModalStore } from "@/store/modalStore";
 
 // Animation variants
 const fadeIn = {
@@ -40,7 +41,7 @@ const pageVariants = {
 
 // Form schema using zod
 const createSchema = z.object({
-	groupName: z
+	name: z
 		.string()
 		.min(3, "Group name must be at least 3 characters")
 		.max(50, "Group name cannot exceed 50 characters"),
@@ -48,6 +49,11 @@ const createSchema = z.object({
 		.string()
 		.max(200, "Description cannot exceed 200 characters")
 		.optional(),
+	adminPassword: z
+		.string()
+		.min(6, "Password must be at least 6 characters")
+		.max(50, "Password cannot exceed 50 characters"),
+
 	isPublic: z.boolean().default(false),
 });
 
@@ -62,8 +68,10 @@ export default function CreatePage() {
 		id: string;
 		name: string;
 		isPublic: boolean;
+		accessKey: string;
 	} | null>(null);
 	const [linkCopied, setLinkCopied] = useState(false);
+	const { showError, showSuccess } = useModalStore();
 
 	// Form handling
 	const {
@@ -74,7 +82,7 @@ export default function CreatePage() {
 	} = useForm<CreateFormValues>({
 		resolver: zodResolver(createSchema),
 		defaultValues: {
-			groupName: "",
+			name: "",
 			description: "",
 			isPublic: false,
 		},
@@ -84,34 +92,48 @@ export default function CreatePage() {
 
 	const onSubmit = async (data: CreateFormValues) => {
 		try {
-			// Simulate API call to create group
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
 			const newGroupId = nanoid(10); // Generate a unique ID for the group
 
-			// Here you would create the group in your backend
-			// const response = await fetch('/api/groups', {
-			//   method: 'POST',
-			//   headers: { 'Content-Type': 'application/json' },
-			//   body: JSON.stringify(data)
-			// })
+			const response = await axios.post("/api/groups", data);
+
+			if (response.status !== 200) {
+				throw new Error("Failed to create group");
+			}
+
+			const groupId = response.data.id || newGroupId; // Use the ID from the response or the generated one
+
+			const accessKey: string = response.data.accessKey; // Use password as access key
 
 			setGroupInfo({
-				id: newGroupId,
-				name: data.groupName,
+				id: groupId,
+				name: data.name,
 				isPublic: data.isPublic,
+				accessKey: accessKey, // Use password as access key
 			});
 
 			setIsCreated(true);
+			showSuccess(
+				"Group created successfully!",
+				"You can now share the invite link."
+			);
 		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : "An unexpected error occurred";
 			console.error("Failed to create group:", error);
+			showError("Failed to create group. Please try again.", `${errorMessage}`);
 		}
 	};
 
 	const copyInviteLink = () => {
 		if (!groupInfo) return;
 
-		const inviteLink = `${window.location.origin}/group/${groupInfo.id}`;
+		let inviteLink = `${window.location.origin}/group/${groupInfo.id}`;
+
+		// Private group이면 accessKey를 파라미터로 추가
+		if (!groupInfo.isPublic && groupInfo.accessKey) {
+			inviteLink += `?accessKey=${groupInfo.accessKey}`;
+		}
+
 		navigator.clipboard
 			.writeText(inviteLink)
 			.then(() => {
@@ -171,17 +193,17 @@ export default function CreatePage() {
 									<input
 										id="groupName"
 										type="text"
-										{...register("groupName")}
+										{...register("name")}
 										className={`w-full px-3 py-2 border rounded-md ${
-											errors.groupName
+											errors.name
 												? "border-red-500"
 												: "border-gray-300 dark:border-gray-600"
 										} dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary`}
 										placeholder="E.g., Team Brainstorming"
 									/>
-									{errors.groupName && (
+									{errors.name && (
 										<p className="mt-1 text-sm text-red-500">
-											{errors.groupName.message}
+											{errors.name.message}
 										</p>
 									)}
 								</div>
@@ -207,6 +229,30 @@ export default function CreatePage() {
 									{errors.description && (
 										<p className="mt-1 text-sm text-red-500">
 											{errors.description.message}
+										</p>
+									)}
+								</div>
+								<div>
+									<label
+										htmlFor="password"
+										className="block text-md font-medium text-gray-700 dark:text-gray-300 mb-1"
+									>
+										Password
+									</label>
+									<input
+										id="password"
+										type="text"
+										{...register("adminPassword")}
+										className={`w-full px-3 py-2 border rounded-md ${
+											errors.adminPassword
+												? "border-red-500"
+												: "border-gray-300 dark:border-gray-600"
+										} dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary`}
+										placeholder="enter password"
+									/>
+									{errors.adminPassword && (
+										<p className="mt-1 text-sm text-red-500">
+											{errors.adminPassword.message}
 										</p>
 									)}
 								</div>
@@ -288,7 +334,17 @@ export default function CreatePage() {
 
 								<div className="flex items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded p-2">
 									<span className="text-gray-600 dark:text-gray-400 text-sm truncate flex-1">
-										{`${window.location.origin}/group/${groupInfo?.id}`}
+										{(() => {
+											let inviteLink = `${window.location.origin}/group/${groupInfo?.id}`;
+											if (
+												groupInfo &&
+												!groupInfo.isPublic &&
+												groupInfo.accessKey
+											) {
+												inviteLink += `?accessKey=${groupInfo.accessKey}`;
+											}
+											return inviteLink;
+										})()}
 									</span>
 									<button
 										onClick={copyInviteLink}

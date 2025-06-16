@@ -3,9 +3,8 @@
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Question } from "@/types/question";
-import QuestionCard from "./QestionCard";
-
-type Tab = "all" | "popular" | "recent" | "unanswered";
+import QuestionCard from "./QuestionCard";
+import { Tab } from "@/store/questionStore";
 
 type QuestionListProps = {
 	questions: Question[];

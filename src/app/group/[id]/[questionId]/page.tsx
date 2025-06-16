@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useGroupStore } from "@/store/groupStore";
 import { useQuestionStore } from "@/store/questionStore";
 import { useAnswerStore } from "@/store/answerStore";
+import { useSocket } from "@/hooks/useSocket";
 import QuestionHeader from "@/components/group/questions/QuestionHeader";
 import QuestionContent from "@/components/group/questions/QuestionContent";
 import AnswerList from "@/components/group/questions/AnswerList";
@@ -32,6 +33,17 @@ export default function QuestionPage() {
 	const { fetchQuestionById, question } = useQuestionStore();
 	const { fetchAnswers, answers } = useAnswerStore();
 
+	// Initialize Socket.IO for real-time updates
+	useSocket({
+		groupId,
+		onConnect: () => {
+			console.log("Connected to Socket.IO server");
+		},
+		onDisconnect: () => {
+			console.log("Disconnected from Socket.IO server");
+		},
+	});
+
 	// Add this to prevent re-animating after initial load
 	const [pageAnimationComplete, setPageAnimationComplete] = useState(false);
 
@@ -41,7 +53,10 @@ export default function QuestionPage() {
 			setIsLoading(true);
 			try {
 				// Load group and question data in parallel
-				await Promise.all([fetchGroup(groupId), fetchQuestionById(questionId)]);
+				await Promise.all([
+					fetchGroup(groupId, group?.accessKey ?? null),
+					fetchQuestionById(questionId),
+				]);
 			} catch (error) {
 				console.error("Failed to load question data:", error);
 			} finally {
@@ -50,7 +65,7 @@ export default function QuestionPage() {
 		};
 
 		loadData();
-	}, [groupId, questionId, fetchGroup, fetchQuestionById]);
+	}, [groupId, group?.accessKey, questionId, fetchGroup, fetchQuestionById]);
 
 	// Second effect - fetch answers when question changes
 	useEffect(() => {
@@ -102,23 +117,23 @@ export default function QuestionPage() {
 					>
 						{/* Question Header */}
 						<QuestionHeader question={question} />
-
 						{/* Question Content */}
 						<QuestionContent question={question} />
-
 						{/* Answer Count */}
 						<div className="mt-10 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
 							<h2 className="!text-2xl md:!text-3xl font-semibold">
 								{answers.length} {answers.length === 1 ? "Answer" : "Answers"}
 							</h2>
 						</div>
-
 						{/* Answers List */}
-						<AnswerList answers={answers} />
-
-						{/* Add Answer Form */}
+						<AnswerList answers={answers} questionId={questionId} />{" "}
+						{/* Add Answer Form */}{" "}
 						<div className="mt-10">
-							<AddAnswerForm questionId={questionId} />
+							<AddAnswerForm
+								questionId={questionId}
+								questionContent={question?.content}
+								groupId={groupId}
+							/>
 						</div>
 					</motion.div>
 				</div>

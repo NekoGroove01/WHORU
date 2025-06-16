@@ -11,10 +11,13 @@ import { FaArrowLeft, FaQrcode, FaLink, FaCamera } from "react-icons/fa";
 import TextareaAutosize from "react-textarea-autosize";
 import { fadeIn, pageVariants } from "@/utils/basicMotion";
 import { useBackNavigation } from "../../hooks/useBackNavigation";
+import axios from "axios";
+import { useModalStore } from "@/store/modalStore";
+import { useAccessKey } from "@/hooks/useAccessKey";
 
 // Form schema using zod
 const joinSchema = z.object({
-	groupId: z.string().min(1, "Group ID or invite link is required"),
+	accessKey: z.string().min(1, "Group ID or invite link is required"),
 });
 
 type JoinFormValues = z.infer<typeof joinSchema>;
@@ -31,6 +34,10 @@ export default function JoinPage() {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const streamRef = useRef<MediaStream | null>(null);
 
+	const { showError, showSuccess } = useModalStore();
+	// Save access key in local storage
+	const { setAccessKey } = useAccessKey();
+
 	// Form handling
 	const {
 		register,
@@ -39,7 +46,7 @@ export default function JoinPage() {
 	} = useForm<JoinFormValues>({
 		resolver: zodResolver(joinSchema),
 		defaultValues: {
-			groupId: "",
+			accessKey: "",
 		},
 	});
 
@@ -142,34 +149,65 @@ export default function JoinPage() {
 	const onSubmit = async (data: JoinFormValues) => {
 		try {
 			// Extract group ID from input (could be a full URL or just an ID)
-			const groupId = extractGroupId(data.groupId);
+			const accessKey = extractAccessKey(data.accessKey);
 
 			// Here you would verify the group exists in your backend
-			// const response = await fetch(`/api/groups/verify/${groupId}`)
+			const response = await axios.post("/api/groups/join", {
+				accessKey,
+			});
 
-			// For now, we'll just redirect to the group
-			setTimeout(() => {
-				router.push(`/group/${groupId}`);
-			}, 1000);
+			if (response.status !== 200) {
+				throw new Error("Failed to join group");
+			}
+
+			const groupId: string = response.data.id;
+
+			// Save access key using hook for future use
+			setAccessKey(groupId, accessKey);
+
+			showSuccess(
+				"Join Group Success",
+				"You have successfully joined the group!",
+				() => router.push(`/group/${groupId}`)
+			);
 		} catch (error) {
-			console.error("Failed to join group:", error);
+			const errorMessage =
+				error instanceof Error ? error.message : "An error occurred";
+			showError("Join Group Failed", errorMessage);
 		}
 	};
 
-	// Helper to extract a group ID from either a full URL or just the ID
-	const extractGroupId = (input: string): string => {
-		// If it's a URL, extract the last path segment
-		if (input.startsWith("http")) {
+	// Helper to extract accessKey from either a full URL or just the access key
+	const extractAccessKey = (input: string): string => {
+		const trimmedInput = input.trim();
+
+		// If it's a URL, extract accessKey from query parameter or path
+		if (trimmedInput.startsWith("http")) {
 			try {
-				const url = new URL(input);
-				const pathSegments = url.pathname.split("/");
-				return pathSegments[pathSegments.length - 1];
+				const url = new URL(trimmedInput);
+
+				// First check if there's an accessKey query parameter (for private groups)
+				const accessKeyParam = url.searchParams.get("accessKey");
+				if (accessKeyParam) {
+					return accessKeyParam;
+				}
+
+				// For group URLs like /group/[id], extract the group ID from path
+				const pathSegments = url.pathname.split("/").filter(Boolean);
+				if (pathSegments.length >= 2 && pathSegments[0] === "group") {
+					return pathSegments[1]; // This is the group ID, which serves as accessKey for public groups
+				}
+
+				// If no specific pattern found, use the last path segment (legacy support)
+				return pathSegments[pathSegments.length - 1] || "";
 			} catch (error) {
-				console.error("Invalid URL:", error);
-				return input.trim();
+				console.error("Invalid URL format:", input, error);
+				throw new Error("Please enter a valid URL or access key.");
 			}
 		}
-		return input.trim();
+
+		// If it's not a URL, treat it as a direct access key
+		return trimmedInput;
 	};
 
 	return (
@@ -238,25 +276,25 @@ export default function JoinPage() {
 						>
 							<div>
 								<label
-									htmlFor="groupId"
+									htmlFor="accessKey"
 									className="block text-md font-medium text-gray-700 dark:text-gray-300 mb-1"
 								>
 									Enter group code or paste invite link
 								</label>
 								<TextareaAutosize
-									id="groupId"
-									{...register("groupId")}
+									id="accessKey"
+									{...register("accessKey")}
 									className={`w-full px-3 py-2 border rounded-md ${
-										errors.groupId
+										errors.accessKey
 											? "border-red-500"
 											: "border-gray-300 dark:border-gray-600"
 									} dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary`}
 									placeholder="e.g., abc123 or https://whoru.app/join/abc123"
 									minRows={2}
 								/>
-								{errors.groupId && (
+								{errors.accessKey && (
 									<p className="mt-1 text-sm text-red-500">
-										{errors.groupId.message}
+										{errors.accessKey.message}
 									</p>
 								)}
 							</div>

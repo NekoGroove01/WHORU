@@ -1,25 +1,32 @@
+// app/api/answers/[answerId]/route.ts
 import { NextResponse } from "next/server";
 import { AnswersCollection } from "@/lib/db/collections/answers";
 import { UpdateAnswerSchema } from "@/types/schemas/answer";
-import { validateRequest } from "@/middleware/validation";
-import { withErrorHandler, NotFoundError } from "@/middleware/errorHandler";
+import {
+	withErrorHandler,
+	withValidation,
+	NotFoundError,
+} from "@/middleware/withMiddleware";
 import z from "zod";
 
-type RouteParams = {
-	params: { answerId: string };
+// Define params type
+type AnswerParams = {
+	answerId: string;
 };
 
 // GET /api/answers/[answerId] - Get specific answer
-export const GET = withErrorHandler<RouteParams>(async (req, context) => {
-	// Validate answerId parameter
-	if (!context?.params?.answerId) {
+export const GET = withErrorHandler<AnswerParams>()(async (req, context) => {
+	// Await params as per Next.js 14+
+	const { answerId } = await context!.params;
+
+	if (!answerId) {
 		return NextResponse.json(
 			{ error: "Answer ID is required" },
 			{ status: 400 }
 		);
 	}
-	const { params } = context;
-	const answer = await AnswersCollection.findById(params.answerId);
+
+	const answer = await AnswersCollection.findById(answerId);
 
 	if (!answer) {
 		throw new NotFoundError("Answer not found");
@@ -39,62 +46,85 @@ export const GET = withErrorHandler<RouteParams>(async (req, context) => {
 });
 
 // PUT /api/answers/[answerId] - Update answer
-export const PUT = withErrorHandler<RouteParams>(
-	validateRequest(UpdateAnswerSchema)(async (req, context) => {
-		// Validate answerId parameter
-		if (!context?.params?.answerId) {
-			return NextResponse.json(
-				{ error: "Answer ID is required" },
-				{ status: 400 }
-			);
-		}
-		const { params } = context;
-		const { content, authorPassword } = req.validatedData!;
+export const PUT = withValidation<typeof UpdateAnswerSchema, AnswerParams>(
+	UpdateAnswerSchema
+)(async (req, context) => {
+	const { answerId } = await context!.params;
 
-		const answer = await AnswersCollection.update(
-			params.answerId,
-			content,
-			authorPassword
+	if (!answerId) {
+		return NextResponse.json(
+			{ error: "Answer ID is required" },
+			{ status: 400 }
 		);
+	}
 
-		if (!answer) {
-			throw new NotFoundError("Answer not found");
-		}
+	// validatedData is automatically typed based on UpdateAnswerSchema
+	const { content, authorPassword } = req.validatedData!;
 
-		return NextResponse.json({
-			id: answer._id,
-			content: answer.content,
-			updatedAt: answer.updatedAt,
-		});
-	})
-);
+	const answer = await AnswersCollection.update(
+		answerId,
+		content,
+		authorPassword
+	);
+
+	if (!answer) {
+		throw new NotFoundError("Answer not found");
+	}
+
+	// Broadcast update via Socket.IO
+	const { broadcastAnswerUpdated } = await import("@/lib/socket/handlers");
+	broadcastAnswerUpdated(
+		answer.groupId,
+		answer.questionId,
+		answer._id,
+		content
+	);
+
+	return NextResponse.json({
+		id: answer._id,
+		content: answer.content,
+		updatedAt: answer.updatedAt,
+	});
+});
 
 // DELETE /api/answers/[answerId] - Delete answer
 const DeleteSchema = z.object({
 	authorPassword: z.string().min(6),
 });
 
-export const DELETE = withErrorHandler<RouteParams>(
-	validateRequest(DeleteSchema)(async (req, context) => {
-		// Validate answerId parameter
-		if (!context?.params?.answerId) {
-			return NextResponse.json(
-				{ error: "Answer ID is required" },
-				{ status: 400 }
-			);
-		}
-		const { params } = context;
-		const { authorPassword } = req.validatedData!;
+export const DELETE = withValidation<typeof DeleteSchema, AnswerParams>(
+	DeleteSchema
+)(async (req, context) => {
+	const { answerId } = await context!.params;
 
-		const deleted = await AnswersCollection.delete(
-			params.answerId,
-			authorPassword
+	if (!answerId) {
+		return NextResponse.json(
+			{ error: "Answer ID is required" },
+			{ status: 400 }
 		);
+	}
 
-		if (!deleted) {
-			throw new NotFoundError("Answer not found");
-		}
+	const { authorPassword } = req.validatedData!;
 
-		return NextResponse.json({ success: true });
-	})
-);
+	// Get the answer first to get groupId and questionId for broadcasting
+	const answerToDelete = await AnswersCollection.findById(answerId);
+	if (!answerToDelete) {
+		throw new NotFoundError("Answer not found");
+	}
+
+	const deleted = await AnswersCollection.delete(answerId, authorPassword);
+
+	if (!deleted) {
+		throw new NotFoundError("Answer not found");
+	}
+
+	// Broadcast delete via Socket.IO
+	const { broadcastAnswerDeleted } = await import("@/lib/socket/handlers");
+	broadcastAnswerDeleted(
+		answerToDelete.groupId,
+		answerToDelete.questionId,
+		answerId
+	);
+
+	return NextResponse.json({ success: true });
+});

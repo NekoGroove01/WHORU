@@ -18,13 +18,13 @@ export const CreateAnswerSchema = z.object({
 	questionId: z.string(),
 	content: z.string().min(1).max(5000),
 	authorNickname: z.string().min(1).max(50),
-	authorPassword: z.string().min(6),
+	authorPassword: z.string().min(4),
 	mediaIds: z.array(z.string()).optional(),
 });
 
 export const UpdateAnswerSchema = z.object({
 	content: z.string().min(1).max(5000),
-	authorPassword: z.string().min(6),
+	authorPassword: z.string().min(4),
 });
 
 export const VoteAnswerSchema = z.object({

@@ -1,25 +1,21 @@
 import { NextResponse } from "next/server";
 import { QuestionsCollection } from "@/lib/db/collections/questions";
 import { UpdateQuestionSchema } from "@/types/schemas/question";
-import { validateRequest } from "@/middleware/validation";
-import { withErrorHandler, NotFoundError } from "@/middleware/errorHandler";
+import { withErrorHandler, withValidation, NotFoundError } from "@/middleware/withMiddleware";
 import z from "zod";
 
-type RouteParams = {
-	params: { questionId: string };
-};
+type RouteParams = { questionId: string };
 
 // GET /api/questions/[questionId] - Get specific question
-export const GET = withErrorHandler<RouteParams>(async (req, context) => {
+export const GET = withErrorHandler<RouteParams>()(async (req, context) => {
+	const params = await context?.params;
 	// Validate questionId parameter
-	if (!context?.params?.questionId) {
+	if (!params?.questionId) {
 		return NextResponse.json(
 			{ error: "Question ID is required" },
 			{ status: 400 }
 		);
 	}
-
-	const { params } = context;
 	const question = await QuestionsCollection.findById(params.questionId);
 
 	if (!question) {
@@ -44,64 +40,60 @@ export const GET = withErrorHandler<RouteParams>(async (req, context) => {
 });
 
 // PUT /api/questions/[questionId] - Update question
-export const PUT = withErrorHandler<RouteParams>(
-	validateRequest(UpdateQuestionSchema)(async (req, context) => {
-		// Validate questionId parameter
-		if (!context?.params?.questionId) {
-			return NextResponse.json(
-				{ error: "Question ID is required" },
-				{ status: 400 }
-			);
-		}
-		const { params } = context;
-		const { authorPassword, ...updateData } = req.validatedData!;
-
-		const question = await QuestionsCollection.update(
-			params.questionId,
-			updateData,
-			authorPassword
+export const PUT = withValidation<typeof UpdateQuestionSchema, RouteParams>(UpdateQuestionSchema)(async (req, context) => {
+	const params = await context?.params;
+	// Validate questionId parameter
+	if (!params?.questionId) {
+		return NextResponse.json(
+			{ error: "Question ID is required" },
+			{ status: 400 }
 		);
+	}
+	const { authorPassword, ...updateData } = req.validatedData!;
 
-		if (!question) {
-			throw new NotFoundError("Question not found");
-		}
+	const question = await QuestionsCollection.update(
+		params.questionId,
+		updateData,
+		authorPassword
+	);
 
-		return NextResponse.json({
-			id: question._id,
-			title: question.title,
-			content: question.content,
-			tags: question.tags,
-			updatedAt: question.updatedAt,
-		});
-	})
-);
+	if (!question) {
+		throw new NotFoundError("Question not found");
+	}
+
+	return NextResponse.json({
+		id: question._id,
+		title: question.title,
+		content: question.content,
+		tags: question.tags,
+		updatedAt: question.updatedAt,
+	});
+});
 
 // DELETE /api/questions/[questionId] - Delete question
 const DeleteSchema = z.object({
 	authorPassword: z.string().min(6),
 });
 
-export const DELETE = withErrorHandler<RouteParams>(
-	validateRequest(DeleteSchema)(async (req, context) => {
-		// Validate questionId parameter
-		if (!context?.params?.questionId) {
-			return NextResponse.json(
-				{ error: "Question ID is required" },
-				{ status: 400 }
-			);
-		}
-		const { params } = context;
-		const { authorPassword } = req.validatedData!;
-
-		const deleted = await QuestionsCollection.delete(
-			params.questionId,
-			authorPassword
+export const DELETE = withValidation<typeof DeleteSchema, RouteParams>(DeleteSchema)(async (req, context) => {
+	const params = await context?.params;
+	// Validate questionId parameter
+	if (!params?.questionId) {
+		return NextResponse.json(
+			{ error: "Question ID is required" },
+			{ status: 400 }
 		);
+	}
+	const { authorPassword } = req.validatedData!;
 
-		if (!deleted) {
-			throw new NotFoundError("Question not found");
-		}
+	const deleted = await QuestionsCollection.delete(
+		params.questionId,
+		authorPassword
+	);
 
-		return NextResponse.json({ success: true });
-	})
-);
+	if (!deleted) {
+		throw new NotFoundError("Question not found");
+	}
+
+	return NextResponse.json({ success: true });
+});

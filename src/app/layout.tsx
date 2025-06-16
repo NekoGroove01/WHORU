@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Footer } from "@/components/ui/Footer";
+import { ModalProvider } from "@/providers/ModalProvider";
 
 export const metadata: Metadata = {
 	title: "Create Next App",
@@ -19,14 +20,16 @@ export default function RootLayout({
 		<html lang="ko" suppressHydrationWarning>
 			<body className={`${pretendard.className}`} suppressHydrationWarning>
 				<ThemeProvider>
-					{children}
-					{/* Theme Toggle - Fixed position */}
-					<div className="fixed bottom-5 right-5">
-						<ThemeToggle />
-					</div>
+					<ModalProvider>
+						{children}
+						{/* Theme Toggle - Fixed position */}
+						<div className="fixed bottom-5 right-5">
+							<ThemeToggle />
+						</div>
 
-					{/* Footer */}
-					<Footer />
+						{/* Footer */}
+						<Footer />
+					</ModalProvider>
 				</ThemeProvider>
 			</body>
 		</html>

@@ -1,8 +1,8 @@
+import axios from "axios";
 import { create } from "zustand";
 import { Question } from "@/types/question";
-import { nanoid } from "nanoid";
 
-type Tab = "all" | "popular" | "recent" | "mine" | "unanswered";
+export type Tab = "all" | "popular" | "recent" | "mine" | "unanswered";
 
 type QuestionState = {
 	questions: Question[];
@@ -11,14 +11,19 @@ type QuestionState = {
 	activeTab: Tab;
 	selectedTags: string[];
 	error: string | null;
+	upvotedQuestions: Set<string>; // Track upvoted questions to prevent duplicates
 	setActiveTab: (tab: Tab) => void;
 	setSelectedTags: (tags: string[]) => void;
-	fetchQuestions: (groupId: string) => Promise<void>;
+	fetchQuestions: (groupId: string, page?: number) => Promise<void>;
 	fetchQuestionById: (questionId: string) => Promise<void>;
 	addQuestion: (
 		question: Omit<Question, "id" | "createdAt" | "updatedAt">
 	) => Promise<void>;
-	upvoteQuestion: (questionId: string) => void;
+	updateQuestion: (
+		question: Pick<Question, "id" | "title" | "content" | "tags">,
+		authorPassword: string
+	) => Promise<{ success: boolean; error: string | null }>;
+	upvoteQuestion: (questionId: string) => Promise<void>;
 };
 
 export const useQuestionStore = create<QuestionState>((set, get) => ({
@@ -28,36 +33,27 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 	activeTab: "all",
 	selectedTags: [],
 	error: null,
+	upvotedQuestions: new Set(),
 
 	setActiveTab: (tab) => set({ activeTab: tab }),
 
 	setSelectedTags: (tags) => set({ selectedTags: tags }),
 
-	fetchQuestions: async (groupId) => {
+	// default (page = 1)
+	fetchQuestions: async (groupId, page = 1) => {
 		set({ isLoading: true });
 		try {
-			// Simulate API call delay
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			// API call with pagination
+			const response = await axios.get(
+				`/api/questions/group/${groupId}?page=${page}&limit=20`
+			);
 
-			// Mock questions data
-			const mockQuestions: Question[] = Array.from({ length: 8 }, (_, i) => ({
-				id: `question-${i}`,
-				groupId,
-				title: `Sample question ${i + 1} about design processes?`,
-				content:
-					"This is a detailed explanation of my question about our design workflow and processes.",
-				authorNickname: `Anonymous${i + 1}`,
-				tags: i % 2 === 0 ? ["Design"] : ["Feedback"],
-				answerCount: Math.floor(Math.random() * 5),
-				isAnswered: Math.random() < 0.5,
-				isResolvedByAsker: Math.random() < 0.5,
-				upvotes: Math.floor(Math.random() * 20),
-				views: Math.floor(Math.random() * 100),
-				createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-				updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
-			}));
+			if (response.status !== 200) {
+				throw new Error("Failed to fetch questions");
+			}
+			const questions: Question[] = response.data.questions;
 
-			set({ questions: mockQuestions, isLoading: false });
+			set({ questions: questions, isLoading: false });
 		} catch (error) {
 			console.error("Failed to fetch questions:", error);
 			set({ isLoading: false });
@@ -67,32 +63,18 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 	fetchQuestionById: async (questionId: string) => {
 		set({ isLoading: true });
 		try {
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 800));
-
-			// Mock question data
-			const mockQuestion: Question = {
-				id: questionId,
-				groupId: "group-id",
-				title: "How do we improve the user onboarding experience?",
-				content:
-					"Our analytics show that many users drop off during the onboarding process. I've noticed that our current onboarding flow has too many steps and might be confusing. What are some ways we could simplify this process while still collecting necessary information? Has anyone experimented with progressive onboarding techniques?",
-				authorNickname: "AnonymousUser",
-				tags: ["UX", "Onboarding", "Conversion"],
-				answerCount: 3,
-				isAnswered: true,
-				isResolvedByAsker: false,
-				upvotes: 24,
-				views: 150,
-				createdAt: "2024-11-15T10:30:00Z",
-				updatedAt: "2024-11-16T12:00:00Z",
-			};
+			// API call
+			const response = await axios.get(`/api/questions/${questionId}`);
+			if (response.status !== 200) {
+				throw new Error("Failed to fetch question");
+			}
+			const question: Question = response.data;
 
 			set({
-				question: mockQuestion,
+				question: question,
 				questions: get().questions.some((q) => q.id === questionId)
 					? get().questions
-					: [...get().questions, mockQuestion],
+					: [...get().questions, question],
 				isLoading: false,
 			});
 		} catch (error) {
@@ -103,44 +85,125 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
 
 	addQuestion: async (question) => {
 		try {
-			await new Promise((resolve) => setTimeout(resolve, 600));
-			const newQuestion: Question = {
-				...question,
-				id: `${nanoid(10)}`,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			};
+			// Make actual API call to create question
+			const response = await axios.post("/api/questions", question);
+
+			if (response.status !== 200) {
+				throw new Error("Failed to create question");
+			}
+
+			const newQuestion: Question = response.data;
 
 			set((state) => ({
 				questions: [...state.questions, newQuestion],
 				question: newQuestion,
 			}));
-			
 		} catch (error) {
 			console.error("Failed to add question:", error);
 			set({ error: "Failed to post your question. Please try again." });
 		}
 	},
 
-	upvoteQuestion: (questionId) => {
-		set((state) => ({
-			questions: state.questions.map((q) => {
-				if (q.id !== questionId) return q;
+	// Update question with password (id, title, content, tags)
+	updateQuestion: async (question, authorPassword) => {
+		try {
+			// Make API call to update the question
+			const response = await axios.put(`/api/questions/${question.id}`, {
+				title: question.title,
+				content: question.content,
+				tags: question.tags,
+				authorPassword,
+			});
 
-				// Found the question we want to update
-				return {
-					...q,
-					upvotes: q.upvotes + 1,
-				};
-			}),
-			// Also update the active question if it matches
-			question:
-				state.question?.id === questionId
-					? {
-							...state.question,
-							upvotes: state.question.upvotes + 1,
-					  }
-					: state.question,
-		}));
+			if (response.status !== 200) {
+				throw new Error("Failed to update question");
+			}
+
+			const updatedQuestion = response.data;
+
+			// Update local state with the updated question
+			set((state) => ({
+				questions: state.questions.map((q) => {
+					if (q.id !== question.id) return q;
+
+					return {
+						...q,
+						title: updatedQuestion.title,
+						content: updatedQuestion.content,
+						tags: updatedQuestion.tags,
+						updatedAt: updatedQuestion.updatedAt,
+					};
+				}),
+				// Also update the active question if it matches
+				question:
+					state.question?.id === question.id
+						? {
+								...state.question,
+								title: updatedQuestion.title,
+								content: updatedQuestion.content,
+								tags: updatedQuestion.tags,
+								updatedAt: updatedQuestion.updatedAt,
+						  }
+						: state.question,
+				error: null,
+			}));
+			return {
+				success: true,
+				error: null,
+			}; // Indicate success
+		} catch (error) {
+			console.error("Failed to update question:", error);
+			set({ error: "Failed to update question. Please try again." });
+			return {
+				success: false,
+				error: "Failed to update question. Please try again." + error,
+			}; // Indicate failure
+		}
+	},
+
+	upvoteQuestion: async (questionId) => {
+		// Check if question has already been upvoted by this user
+		const { upvotedQuestions } = get();
+		if (upvotedQuestions.has(questionId)) {
+			set({ error: "You have already upvoted this question." });
+			return;
+		}
+
+		try {
+			// Make API call to upvote the question
+			const response = await axios.post(`/api/questions/${questionId}/upvote`);
+
+			if (response.status !== 200) {
+				throw new Error("Failed to upvote question");
+			}
+
+			const { upvotes } = response.data;
+
+			// Update local state with the new upvote count
+			set((state) => ({
+				questions: state.questions.map((q) => {
+					if (q.id !== questionId) return q;
+
+					return {
+						...q,
+						upvotes: upvotes,
+					};
+				}),
+				// Also update the active question if it matches
+				question:
+					state.question?.id === questionId
+						? {
+								...state.question,
+								upvotes: upvotes,
+						  }
+						: state.question,
+				// Mark this question as upvoted to prevent duplicate votes
+				upvotedQuestions: new Set([...state.upvotedQuestions, questionId]),
+				error: null,
+			}));
+		} catch (error) {
+			console.error("Failed to upvote question:", error);
+			set({ error: "Failed to upvote question. Please try again." });
+		}
 	},
 }));

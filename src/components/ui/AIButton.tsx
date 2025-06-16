@@ -22,14 +22,10 @@ export default function AiButton({
 				onClick={toggleAi}
 				disabled={isStreaming}
 				whileTap={{ scale: 0.95 }}
-				className={`p-2.5 rounded-full transition-all duration-300 overflow-hidden relative`}
+				className={`p-2.5 bg-gray-100 dark:!bg-gray-700 rounded-full transition-all duration-300 overflow-hidden relative`}
 				initial={false}
 				animate={isAiActive || isStreaming ? "active" : "inactive"}
 				variants={{
-					inactive: {
-						background: "rgb(243, 244, 246)",
-						boxShadow: "0 0 0 rgba(59, 130, 246, 0)",
-					},
 					active: {
 						background:
 							"linear-gradient(135deg, rgb(59, 130, 246), rgb(139, 92, 246), rgb(236, 72, 153))",
@@ -76,7 +72,7 @@ export default function AiButton({
 					<RiSparklingFill
 						className={`text-lg ${
 							isAiActive || isStreaming
-								? "text-white"
+								? "text-white dark:text-gray-200"
 								: "text-gray-500 dark:text-gray-300"
 						}`}
 					/>

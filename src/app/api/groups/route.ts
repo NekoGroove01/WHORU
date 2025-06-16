@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GroupsCollection } from "@/lib/db/collections/groups";
 import { CreateGroupSchema } from "@/types/schemas/group";
-import { validateRequest } from "@/middleware/validation";
-import { withErrorHandler } from "@/middleware/errorHandler";
+import { withErrorHandler, withValidation } from "@/middleware/withMiddleware";
 
 // GET /api/groups - Get public groups
-export const GET = withErrorHandler(async (req: NextRequest) => {
+export const GET = withErrorHandler()(async (req: NextRequest) => {
 	const { searchParams } = new URL(req.url);
 	const page = parseInt(searchParams.get("page") || "1");
 	const limit = parseInt(searchParams.get("limit") || "20");
@@ -39,23 +38,21 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
 });
 
 // POST /api/groups - Create new group
-export const POST = withErrorHandler(
-	validateRequest(CreateGroupSchema)(async (req) => {
-		const data = req.validatedData!;
+export const POST = withValidation(CreateGroupSchema)(async (req) => {
+	const data = req.validatedData!;
 
-		const group = await GroupsCollection.create(data);
+	const group = await GroupsCollection.create(data);
 
-		// Return group without sensitive data
-		return NextResponse.json({
-			id: group._id,
-			name: group.name,
-			description: group.description,
-			isPublic: group.isPublic,
-			accessKey: group.accessKey,
-			tags: group.tags,
-			questionCount: group.questionCount,
-			lastActivityAt: group.lastActivityAt,
-			createdAt: group.createdAt,
-		});
-	})
-);
+	// Return group without sensitive data
+	return NextResponse.json({
+		id: group._id,
+		name: group.name,
+		description: group.description,
+		isPublic: group.isPublic,
+		accessKey: group.accessKey,
+		tags: group.tags,
+		questionCount: group.questionCount,
+		lastActivityAt: group.lastActivityAt,
+		createdAt: group.createdAt,
+	});
+});

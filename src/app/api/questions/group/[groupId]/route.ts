@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import { QuestionsCollection } from "@/lib/db/collections/questions";
-import { withErrorHandler } from "@/middleware/errorHandler";
+import { withErrorHandler } from "@/middleware/withMiddleware";
 
 type RouteParams = {
-	params: { groupId: string };
+	groupId: string;
 };
 
 // GET /api/questions/group/[groupId] - Get questions by group
-export const GET = withErrorHandler<RouteParams>(async (req, context) => {
+export const GET = withErrorHandler<RouteParams>()(async (req, context) => {
+	const params = await context?.params;
 	// Validate groupId parameter
-	if (!context?.params?.groupId) {
+	if (!params?.groupId) {
 		return NextResponse.json(
 			{ error: "Group ID is required" },
 			{ status: 400 }
 		);
 	}
-	const { params } = context;
 	const { searchParams } = new URL(req.url);
 	const page = parseInt(searchParams.get("page") || "1");
 	const limit = parseInt(searchParams.get("limit") || "20");

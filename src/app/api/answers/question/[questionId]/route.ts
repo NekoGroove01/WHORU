@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server";
 import { AnswersCollection } from "@/lib/db/collections/answers";
-import { withErrorHandler } from "@/middleware/errorHandler";
+import { withErrorHandler } from "@/middleware/withMiddleware";
 
+// Define route parameters type
 type RouteParams = {
-	params: { questionId: string };
+	questionId: string;
 };
 
 // GET /api/answers/question/[questionId] - Get answers by question
-export const GET = withErrorHandler<RouteParams>(async (req, context) => {
+export const GET = withErrorHandler<RouteParams>()(async (req, context) => {
+	const params = await context?.params;
 	// Validate questionId parameter
-	if (!context?.params?.questionId) {
+	if (!params?.questionId) {
 		return NextResponse.json(
 			{ error: "Question ID is required" },
 			{ status: 400 }
 		);
 	}
-	const { params } = context;
 	const { searchParams } = new URL(req.url);
 	const page = parseInt(searchParams.get("page") || "1");
 	const limit = parseInt(searchParams.get("limit") || "50");

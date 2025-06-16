@@ -16,6 +16,12 @@ export class GroupsCollection {
 		return collection.findOne({ _id: new ObjectId(id).toString() });
 	}
 
+	static async findByAccessKey(accessKey: string): Promise<Group | null> {
+		if (!accessKey || accessKey.trim() === "") return null;
+		const collection = await this.getCollection();
+		return collection.findOne({ accessKey });
+	}
+
 	static async findPublicGroups(
 		skip: number = 0,
 		limit: number = 20
@@ -77,21 +83,64 @@ export class GroupsCollection {
 
 		if (!group) return null;
 
+		// Debug logging for password comparison
+		console.log("AdminPassword received:", adminPassword);
+		console.log("Group adminPassword from DB:", group.adminPassword);
+		console.log("AdminPassword type:", typeof adminPassword);
+		console.log("Group adminPassword type:", typeof group.adminPassword);
+
+		// Validate passwords before bcrypt comparison
+		if (!adminPassword || typeof adminPassword !== "string") {
+			throw new Error("Admin password is required and must be a string");
+		}
+
+		if (!group.adminPassword || typeof group.adminPassword !== "string") {
+			throw new Error("Group admin password is not properly set");
+		}
+
 		const isValidPassword = await bcrypt.compare(
 			adminPassword,
 			group.adminPassword
 		);
 		if (!isValidPassword) throw new Error("Invalid admin password");
 
+		// Don't include adminPassword in updateData to avoid overwriting it
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { adminPassword: _unused, ...dataWithoutPassword } = data;
 		const updateData = {
-			...data,
+			...dataWithoutPassword,
 			updatedAt: new Date(),
-			adminPassword: undefined, // Don't update password through this method
 		};
 
 		const result = await collection.findOneAndUpdate(
 			{ _id: id },
 			{ $set: updateData },
+			{ returnDocument: "after" }
+		);
+
+		return result ?? null;
+	}
+
+	/**
+	 * Update admin password for a group
+	 * @param groupId - The group ID
+	 * @param hashedPassword - The new hashed password
+	 * @returns Updated group
+	 */
+	static async updateAdminPassword(
+		groupId: string,
+		hashedPassword: string
+	): Promise<Group | null> {
+		const collection = await this.getCollection();
+
+		const result = await collection.findOneAndUpdate(
+			{ _id: groupId },
+			{
+				$set: {
+					adminPassword: hashedPassword,
+					updatedAt: new Date(),
+				},
+			},
 			{ returnDocument: "after" }
 		);
 

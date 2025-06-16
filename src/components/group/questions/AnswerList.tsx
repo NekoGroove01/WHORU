@@ -7,11 +7,12 @@ import AnswerItem from "./AnswerItem";
 
 type AnswerListProps = {
 	answers: Answer[];
+	questionId: string;
 };
 
 type SortOption = "newest" | "votes" | "oldest";
 
-function AnswerList({ answers }: Readonly<AnswerListProps>) {
+function AnswerList({ answers, questionId }: Readonly<AnswerListProps>) {
 	const [sortBy, setSortBy] = useState<SortOption>("votes");
 	const [sortedAnswers, setSortedAnswers] = useState<Answer[]>(answers);
 	// Add this to track initial mount
@@ -102,6 +103,7 @@ function AnswerList({ answers }: Readonly<AnswerListProps>) {
 							<AnswerItem
 								answer={answer}
 								isQuestionAuthor={answer.isAccepted}
+								questionId={questionId}
 							/>
 						</motion.div>
 					))}

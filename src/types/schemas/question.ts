@@ -23,7 +23,7 @@ export const CreateQuestionSchema = z.object({
 	title: z.string().max(200).optional(),
 	content: z.string().min(1).max(5000),
 	authorNickname: z.string().min(1).max(50),
-	authorPassword: z.string().min(6),
+	authorPassword: z.string().min(4),
 	tags: z.array(z.string()).max(5).default([]),
 	mediaIds: z.array(z.string()).optional(),
 });
@@ -32,7 +32,7 @@ export const UpdateQuestionSchema = z.object({
 	title: z.string().max(200).nullable().optional(),
 	content: z.string().min(1).max(5000).optional(),
 	tags: z.array(z.string()).max(5).optional(),
-	authorPassword: z.string().min(6),
+	authorPassword: z.string().min(4),
 });
 
 export type Question = z.infer<typeof QuestionSchema>;

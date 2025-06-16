@@ -12,6 +12,7 @@ import AskQuestionForm from "@/components/group/AskQuestionForm";
 import TagFilter from "@/components/group/Tagfilter";
 import GroupNotFound from "@/components/group/GroupNotFound";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import { useAccessKey } from "@/hooks/useAccessKey";
 
 export default function GroupPage() {
 	const params = useParams();
@@ -20,6 +21,7 @@ export default function GroupPage() {
 
 	// Get state from stores
 	const { group, fetchGroup, setActiveGroup } = useGroupStore();
+	const { getAccessKey, hasAccessKey } = useAccessKey();
 	const {
 		questions,
 		fetchQuestions,
@@ -33,8 +35,10 @@ export default function GroupPage() {
 		const loadGroupData = async () => {
 			setIsLoading(true);
 			try {
+				const accessKey = hasAccessKey(groupId) ? getAccessKey(groupId) : null;
+				console.log("Access Key:", accessKey);
 				// Fetch group data
-				await fetchGroup(groupId);
+				await fetchGroup(groupId, accessKey);
 				// Fetch questions for this group
 				await fetchQuestions(groupId);
 			} catch (error) {
@@ -50,7 +54,14 @@ export default function GroupPage() {
 		return () => {
 			setActiveGroup(null);
 		};
-	}, [groupId, fetchGroup, fetchQuestions, setActiveGroup]);
+	}, [
+		groupId,
+		hasAccessKey,
+		getAccessKey,
+		fetchGroup,
+		fetchQuestions,
+		setActiveGroup,
+	]);
 
 	// Return loading state
 	if (isLoading) {
