@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import AiButton from "@/components/ui/AiButton";
+import AiButton from "@/components/ui/AIButton";
 import AIModal from "@/components/ui/AIModal";
 
 export default function AIDemoPage() {

@@ -9,7 +9,7 @@ import { FaPaperPlane, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import TextareaAutosize from "react-textarea-autosize";
 import { useQuestionStore } from "@/store/questionStore";
 import { useGroupStore } from "@/store/groupStore";
-import AiButton from "@/components/ui/AiButton";
+import AiButton from "@/components/ui/AIButton";
 import AIModal from "@/components/ui/AIModal";
 import { useModalStore } from "@/store/modalStore";
 

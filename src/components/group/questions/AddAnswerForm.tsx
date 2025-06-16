@@ -8,7 +8,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import AiButton from "@/components/ui/AiButton";
+import AiButton from "@/components/ui/AIButton";
 import AIModal from "@/components/ui/AIModal";
 
 // Define Zod schema for answer validation
